@@ -1,21 +1,35 @@
 //! Strict keyword parsing only; scientific validation stays in the Rust models.
+use ionoray_geospace::DataPolicy;
+#[cfg(feature = "iri")]
+use ionoray_geospace::IriDriverOverrides;
+#[cfg(feature = "hwm")]
+use ionoray_geospace::hwm::HwmGeomagneticActivity;
+#[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]
+use ionoray_geospace::{Epoch, GeodeticPosition, QueryPoint};
+#[cfg(feature = "msis")]
 use ionoray_geospace::{
-    DataPolicy, Epoch, GeodeticPosition, IriDriverOverrides, MsisDriverOverrides, QueryPoint,
-    hwm::HwmGeomagneticActivity,
+    MsisDriverOverrides,
     msis::{MsisApHistory, MsisGeomagneticActivity},
 };
+#[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]
 use pyo3::{
-    exceptions::{PyTypeError, PyValueError},
-    prelude::*,
+    exceptions::PyTypeError,
     types::{PyBool, PyDict},
 };
+use pyo3::{exceptions::PyValueError, prelude::*};
 
+#[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]
 pub(crate) const POINT: &[&str] = &["at", "latitude_deg", "longitude_deg", "altitude_km"];
+#[cfg(feature = "iri")]
 pub(crate) const IRI: &[&str] = &["rz12", "ig12", "f107_daily", "f107_81_day"];
+#[cfg(feature = "hwm")]
 pub(crate) const HWM: &[&str] = &["activity", "current_ap"];
+#[cfg(feature = "msis")]
 pub(crate) const MSIS: &[&str] = &["f107a", "f107_previous_day", "ap_daily", "ap_history"];
 
+#[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]
 pub(crate) struct Arguments<'py>(Bound<'py, PyDict>);
+#[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]
 impl<'py> Arguments<'py> {
     pub(crate) fn new(
         py: Python<'py>,
@@ -36,12 +50,14 @@ impl<'py> Arguments<'py> {
             .get_item(name)?
             .ok_or_else(|| PyTypeError::new_err(format!("missing required parameter '{name}'")))
     }
+    #[cfg(any(feature = "iri", feature = "hwm", feature = "msis"))]
     pub(crate) fn optional(&self, name: &str) -> PyResult<Option<Bound<'py, PyAny>>> {
         Ok(self.0.get_item(name)?.filter(|v| !v.is_none()))
     }
     pub(crate) fn number(&self, name: &str) -> PyResult<f64> {
         number(&self.required(name)?, name)
     }
+    #[cfg(any(feature = "iri", feature = "hwm", feature = "msis"))]
     fn optional_number(&self, name: &str) -> PyResult<Option<f64>> {
         self.optional(name)?.map(|v| number(&v, name)).transpose()
     }
@@ -69,6 +85,7 @@ impl<'py> Arguments<'py> {
         .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(QueryPoint { epoch, position })
     }
+    #[cfg(feature = "iri")]
     pub(crate) fn iri(&self, required: bool) -> PyResult<IriDriverOverrides> {
         if required {
             for name in IRI {
@@ -82,6 +99,7 @@ impl<'py> Arguments<'py> {
             f107_81_day: self.optional_number("f107_81_day")?,
         })
     }
+    #[cfg(feature = "hwm")]
     pub(crate) fn hwm(&self, required: bool) -> PyResult<Option<HwmGeomagneticActivity>> {
         if required {
             self.required("activity")?;
@@ -102,6 +120,7 @@ impl<'py> Arguments<'py> {
             )),
         }
     }
+    #[cfg(feature = "msis")]
     pub(crate) fn msis(&self, required: bool) -> PyResult<MsisDriverOverrides> {
         if required {
             self.number("f107a")?;
@@ -127,11 +146,13 @@ impl<'py> Arguments<'py> {
             geomagnetic_activity,
         })
     }
+    #[cfg(any(feature = "iri", feature = "hwm", feature = "msis"))]
     pub(crate) fn policy(&self, fallback: DataPolicy) -> PyResult<DataPolicy> {
         self.optional("data_policy")?
             .map_or(Ok(fallback), |v| parse_policy(&v.extract::<String>()?))
     }
 }
+#[cfg(feature = "msis")]
 fn parse_history(value: &Bound<'_, PyAny>) -> PyResult<MsisApHistory> {
     let dict = value
         .cast::<PyDict>()
@@ -166,6 +187,7 @@ pub(crate) fn parse_policy(value: &str) -> PyResult<DataPolicy> {
         )),
     }
 }
+#[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]
 fn number(value: &Bound<'_, PyAny>, name: &str) -> PyResult<f64> {
     if value.is_instance_of::<PyBool>() {
         return Err(PyTypeError::new_err(format!(

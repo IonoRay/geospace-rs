@@ -60,7 +60,9 @@ mod tests {
             IndexDataset::IriIgRz,
             IndexDataset::IriApF107,
         ] {
-            let Some(cache) = for_dataset(dataset, 2020) else { continue; };
+            let Some(cache) = for_dataset(dataset, 2020) else {
+                continue;
+            };
             let actual = ionoray_core::Sha256Digest::from_bytes(Sha256::digest(cache.bytes).into());
             assert_eq!(actual.to_hex(), cache.sha256);
         }
@@ -68,11 +70,20 @@ mod tests {
 
     #[test]
     fn coverage_excludes_partial_snapshot_years() {
-        assert_eq!(for_dataset(IndexDataset::KpApF107, 2025).is_some(), GFZ_BYTES.is_some());
+        assert_eq!(
+            for_dataset(IndexDataset::KpApF107, 2025).is_some(),
+            GFZ_BYTES.is_some()
+        );
         assert!(for_dataset(IndexDataset::KpApF107, 2026).is_none());
-        assert_eq!(for_dataset(IndexDataset::IriIgRz, IRI_IG_RZ_END_YEAR).is_some(), IG_RZ_BYTES.is_some());
+        assert_eq!(
+            for_dataset(IndexDataset::IriIgRz, IRI_IG_RZ_END_YEAR).is_some(),
+            IG_RZ_BYTES.is_some()
+        );
         assert!(for_dataset(IndexDataset::IriIgRz, IRI_IG_RZ_END_YEAR + 1).is_none());
-        assert_eq!(for_dataset(IndexDataset::IriApF107, IRI_APF107_END_YEAR).is_some(), APF107_BYTES.is_some());
+        assert_eq!(
+            for_dataset(IndexDataset::IriApF107, IRI_APF107_END_YEAR).is_some(),
+            APF107_BYTES.is_some()
+        );
         assert!(for_dataset(IndexDataset::IriApF107, IRI_APF107_END_YEAR + 1).is_none());
         assert!(for_dataset(IndexDataset::Dst, 2020).is_none());
     }

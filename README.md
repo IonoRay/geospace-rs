@@ -23,8 +23,29 @@ and upstream-derived material have separate terms; see [LICENSE](LICENSE) and
 In particular, NRLMSIS 2.1 restricts use to research, academic, and non-profit
 purposes, and the GFZ snapshot includes sunspot data under CC BY-NC 4.0.
 HWM14 software redistribution terms remain an open release-review item.
-The `standard`/`cli-standard` features and Python bindings include these backends;
+The `standard`/`cli-standard` features include these backends; Python defaults to
+indices and requires explicit model features.
 the complete distribution is not covered solely by MIT/Apache-2.0.
+
+## Main and cache snapshots
+
+`main` is the shared implementation with a fresh history and no eight raw snapshot files.
+`cache-snapshots` is the same implementation plus the fixed assets listed in
+`assets/cache-manifest.json`. It is a local research view while HWM/MSIS release
+rights remain unresolved; see [release workflow](docs/releases.md).
+
+The single-file `scripts/sync-cache.py` can read an approved GitHub source at a
+fixed commit, validate compatibility, and install only the whitelisted assets
+and notices. It needs Python 3.10+, no Git/Cargo/Nix imports, and an explicit
+`--dest`. A remote source must be published and authorized before that workflow
+can be exercised. It never switches or merges branches.
+
+```bash
+python3 scripts/sync-cache.py --repo OWNER/APPROVED-REPO --ref FULL_COMMIT_SHA --dest /absolute/cache-root --dry-run
+# After synchronization, use the same relative asset layout at build time:
+nix develop .#default --command env IONORAY_CACHE_ROOT=/absolute/cache-root IONORAY_OFFLINE=1 \
+  cargo run --locked --offline -p ionoray-geospace --features standard --example direct_models
+```
 
 ## Quick start
 
@@ -53,7 +74,9 @@ nix develop .#default --command env IONORAY_OFFLINE=1 \
   --features igrf,iri,hwm,msis --example direct_models
 ```
 
-`IONORAY_OFFLINE=1` selects the bundled model build assets. Once dependencies
+`main` tracks no fixed snapshots. Provide a cache root (below), verified source
+directories, or permit the initial fixed build-time acquisition.
+`IONORAY_OFFLINE=1` requires already available, verified model build assets. Once dependencies
 are cached, add Cargo `--offline` to prevent dependency downloads. Runtime index
 HTTP access is controlled separately by `DataPolicy`, `SyncMode`, or `SyncPolicy`.
 The direct example supplies every driver and does not open an index store.

@@ -38,11 +38,23 @@ async fn offline_range_prepares_and_typed_reads_keep_provenance() {
             .sync_range(request(dataset, fields, epoch, SyncMode::Offline))
             .await
             .unwrap();
-        assert_eq!(report.status, RangeSyncStatus::Complete);
+        let available = crate::download::cache::for_dataset(dataset, 2020).is_some();
+        assert_eq!(
+            report.status,
+            if available {
+                RangeSyncStatus::Complete
+            } else {
+                RangeSyncStatus::Partial
+            }
+        );
         assert_eq!(report.download_summary.sources_queried, 0);
         assert_eq!(report.download_summary.bodies_downloaded, 0);
     }
 
+    if crate::download::cache::for_dataset(IndexDataset::KpApF107, 2020).is_none() {
+        assert!(indices.ap_at(epoch).await.is_err());
+        return;
+    }
     let ap = indices.ap_at(epoch).await.unwrap();
     let f107 = indices.f107_at(epoch).await.unwrap();
     let monthly = indices.iri_monthly_at(epoch).await.unwrap();
@@ -51,7 +63,7 @@ async fn offline_range_prepares_and_typed_reads_keep_provenance() {
     assert!(f107.value.value() > 0.0);
     assert!(monthly.ig12.value.value().is_finite());
     assert!(iri_f107.daily.value.value() > 0.0);
-    assert!(!ap.release_id.is_empty());
+    assert_ne!(ap.release_id.len(), 0);
     assert_eq!(ap.artifact, f107.artifact);
 }
 
@@ -71,6 +83,10 @@ async fn offline_2021_f107_gaps_remain_visible_after_import() {
         .unwrap();
 
     let missing_day = "2021-06-16T12:00:00 UTC".parse::<Epoch>().unwrap();
+    if crate::download::cache::for_dataset(IndexDataset::KpApF107, 2021).is_none() {
+        assert!(indices.f107_at(missing_day).await.is_err());
+        return;
+    }
     let daily = indices.f107_at(missing_day).await.unwrap();
     assert!((daily.value.value() - 80.25).abs() < 1.0e-10);
     assert_eq!(
@@ -104,6 +120,11 @@ async fn range_ensure_reuses_existing_field_coverage() {
         ))
         .await
         .unwrap();
+    if crate::download::cache::for_dataset(IndexDataset::KpApF107, 2020).is_none() {
+        assert_eq!(report.status, RangeSyncStatus::Partial);
+        assert_eq!(report.download_summary.sources_queried, 0);
+        return;
+    }
     assert_eq!(report.status, RangeSyncStatus::Complete);
     let report = indices
         .sync_range(request(

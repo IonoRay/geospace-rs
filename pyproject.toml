@@ -7,9 +7,17 @@ name = "ionoray-geospace"
 version = "0.1.0"
 description = "Thin Python bindings for IonoRay geospace models and driver sessions"
 requires-python = ">=3.10"
+license = "LicenseRef-IonoRay-Distribution"
+license-files = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE", "THIRD_PARTY_NOTICES.md", "crates/models/iri/IRI-LICENSE.txt", "crates/models/msis/nrlmsis2.1_license.txt", "crates/indices/GFZ-NOTICE.txt", "licenses/native/*.txt"]
 
 [tool.maturin]
 manifest-path = "crates/python/Cargo.toml"
 python-source = "python"
 module-name = "ionoray_geospace._native"
 features = ["extension-module"]
+
+# No source snapshots enter the sdist, even when installed locally or tracked by
+# cache-snapshots. Build-time external sources can still be supplied explicitly.
+exclude = ["**/cache/*.tgz", "**/cache/*.tar", "**/cache/*.gz", "**/cache/*.txt", "**/cache/*.dat", "**/data/igrf14coeffs.txt", "**/data/reference-profiles.txt"]
+
+include = [{ path = "crates/**/*", format = "sdist" }, { path = "scripts/*.py", format = "sdist" }, { path = "assets/cache-manifest.json", format = "sdist" }, { path = "docs/releases.md", format = "sdist" }, { path = "docs/main-cache-validation.md", format = "sdist" }, { path = "flake.nix", format = "sdist" }, { path = "flake.lock", format = "sdist" }]

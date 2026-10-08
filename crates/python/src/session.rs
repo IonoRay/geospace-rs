@@ -1,12 +1,15 @@
 //! One explicitly opened store/runtime, confined to its creating Python thread.
+#[cfg(any(feature = "iri", feature = "hwm", feature = "msis"))]
 use crate::{
     convert::output,
-    error::{failure, translate},
-    prepared::{PyPreparedHwm, PyPreparedIri, PyPreparedMsis},
-    request::{Arguments, HWM, IRI, MSIS, POINT, parse_policy},
+    error::translate,
+    request::{Arguments, POINT},
 };
-use ionoray_geospace::{DataPolicy, Geospace, HwmRequest, IriRequest, MsisRequest};
-use pyo3::{exceptions::PyRuntimeError, prelude::*, types::PyDict};
+use crate::{error::failure, request::parse_policy};
+use ionoray_geospace::{DataPolicy, Geospace};
+#[cfg(any(feature = "iri", feature = "hwm", feature = "msis"))]
+use pyo3::types::PyDict;
+use pyo3::{exceptions::PyRuntimeError, prelude::*};
 use std::{
     path::PathBuf,
     thread::{self, ThreadId},
@@ -14,6 +17,10 @@ use std::{
 use tokio::runtime::{Builder, Runtime};
 
 // Fields drop in declaration order: release the store before the runtime.
+#[cfg_attr(
+    not(any(feature = "iri", feature = "hwm", feature = "msis")),
+    allow(dead_code)
+)]
 struct Resources {
     geospace: Geospace,
     runtime: Runtime,
@@ -22,6 +29,10 @@ struct Resources {
 #[pyclass(module = "ionoray_geospace")]
 pub(crate) struct Session {
     owner: ThreadId,
+    #[cfg_attr(
+        not(any(feature = "iri", feature = "hwm", feature = "msis")),
+        allow(dead_code)
+    )]
     policy: DataPolicy,
     resources: Option<Resources>,
 }
@@ -90,6 +101,7 @@ impl Session {
     }
 
     /// Resolve missing Iri drivers once; returned Prepared outlives this session.
+    #[cfg(feature = "iri")]
     #[pyo3(signature = (**kwargs), text_signature = "($self, *, at, latitude_deg, longitude_deg, altitude_km, rz12=None, ig12=None, f107_daily=None, f107_81_day=None, data_policy=None)")]
     fn prepare_iri(
         &self,
@@ -113,6 +125,7 @@ impl Session {
         Ok(PyPreparedIri(prepared))
     }
     /// Prepare and evaluate using the same Rust implementation as Prepared.
+    #[cfg(feature = "iri")]
     #[pyo3(signature = (**kwargs), text_signature = "($self, *, at, latitude_deg, longitude_deg, altitude_km, rz12=None, ig12=None, f107_daily=None, f107_81_day=None, data_policy=None)")]
     fn evaluate_iri(
         &self,
@@ -127,6 +140,7 @@ impl Session {
     }
 
     /// Resolve missing Hwm drivers once; returned Prepared outlives this session.
+    #[cfg(feature = "hwm")]
     #[pyo3(signature = (**kwargs), text_signature = "($self, *, at, latitude_deg, longitude_deg, altitude_km, activity=None, current_ap=None, data_policy=None)")]
     fn prepare_hwm(
         &self,
@@ -150,6 +164,7 @@ impl Session {
         Ok(PyPreparedHwm(prepared))
     }
     /// Prepare and evaluate using the same Rust implementation as Prepared.
+    #[cfg(feature = "hwm")]
     #[pyo3(signature = (**kwargs), text_signature = "($self, *, at, latitude_deg, longitude_deg, altitude_km, activity=None, current_ap=None, data_policy=None)")]
     fn evaluate_hwm(
         &self,
@@ -164,6 +179,7 @@ impl Session {
     }
 
     /// Resolve missing Msis drivers once; returned Prepared outlives this session.
+    #[cfg(feature = "msis")]
     #[pyo3(signature = (**kwargs), text_signature = "($self, *, at, latitude_deg, longitude_deg, altitude_km, f107a=None, f107_previous_day=None, ap_daily=None, ap_history=None, data_policy=None)")]
     fn prepare_msis(
         &self,
@@ -187,6 +203,7 @@ impl Session {
         Ok(PyPreparedMsis(prepared))
     }
     /// Prepare and evaluate using the same Rust implementation as Prepared.
+    #[cfg(feature = "msis")]
     #[pyo3(signature = (**kwargs), text_signature = "($self, *, at, latitude_deg, longitude_deg, altitude_km, f107a=None, f107_previous_day=None, ap_daily=None, ap_history=None, data_policy=None)")]
     fn evaluate_msis(
         &self,
@@ -201,6 +218,21 @@ impl Session {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "hwm"))]
 #[path = "session_tests.rs"]
 mod tests;
+
+#[cfg(feature = "iri")]
+use crate::{prepared::PyPreparedIri, request::IRI};
+#[cfg(feature = "iri")]
+use ionoray_geospace::IriRequest;
+
+#[cfg(feature = "hwm")]
+use crate::{prepared::PyPreparedHwm, request::HWM};
+#[cfg(feature = "hwm")]
+use ionoray_geospace::HwmRequest;
+
+#[cfg(feature = "msis")]
+use crate::{prepared::PyPreparedMsis, request::MSIS};
+#[cfg(feature = "msis")]
+use ionoray_geospace::MsisRequest;

@@ -29,6 +29,7 @@ pub(super) async fn download_file_for_years(
     mode: CheckMode,
     target_years: &[u16],
 ) -> Result<PreparedSourceDownload, IndexError> {
+    crate::download::license::notice(source.dataset);
     let scoped = scoped(store, source.dataset).await?;
     download_file_unlocked_for_years(&scoped, source, mode, target_years).await
 }

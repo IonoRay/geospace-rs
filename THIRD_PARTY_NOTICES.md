@@ -2,8 +2,8 @@
 
 The [MIT/Apache-2.0 choice](LICENSE) covers original IonoRay code. It does not
 replace upstream terms for the software, data, reference extracts, or derived
-material listed here. Cargo `license` metadata describes the original code;
-it must not be read as a license grant for the complete bundled distribution.
+material listed here. Pure original-code packages use SPDX metadata. Mixed model/data packages use
+`license-file` and include their local scope statement and upstream notices.
 
 This inventory records the current materials and unresolved release questions.
 It does not claim that all redistribution rights have been cleared. Ordinary
@@ -53,8 +53,8 @@ review their notices when distributing compiled artifacts.
   states CC BY-NC-ND terms for the article; applicability to the software and
   coefficient supplement, especially the generated adapter, has not been established.
 - Before public redistribution, obtain applicable software/asset terms from
-  the provider or choose an explicit external-source packaging policy. This
-  preparation keeps the existing implementation and pinned archive for local review.
+  the provider or choose an explicit external-source packaging policy. The pinned archive lives only on local cache-snapshots; build adapters are
+  shared source and still require a rights review before public distribution.
 
 ## NRLMSIS 2.1 — restricted upstream agreement
 
@@ -101,3 +101,21 @@ authority. See the [MSIS README](crates/models/msis/README.md#license-boundary).
 Kyoto Dst/AE archives are downloaded only on an explicit online data path and
 are not bundled. Their provider's terms still apply to subsequently downloaded
 data and any redistribution of a user's local store.
+
+## Native runtime libraries in wheels
+
+Portable wheels must use `maturin build --auditwheel repair` and pass actual
+Mach-O/ELF dependency inspection. Original Rust metadata alone does not describe
+those copied libraries. `licenses/native/` retains the GNU GPL-3.0, LGPL-2.1 and
+GCC Runtime Library Exception 3.1 texts from the GCC upstream repository.
+GCC libgfortran/libgcc use the runtime exception; libquadmath and GNU libintl
+retain their own library terms. Source and modifications must be reviewed for
+the actual runtime version/platform before distributing copied libraries.
+
+The local macOS Nix toolchain also links Apple libiconv 115.100.1/libcharset.
+The exact upstream `libcharset/libcharset.c` header identifies APSL-1.0
+(`licenses/native/APPLE-libcharset-NOTICE.txt`), while Nix package metadata lists
+BSD licenses. That discrepancy is an additional binary release review item;
+package metadata is insufficient permission evidence. A macOS binding link
+now drops unused dylibs. Base wheels need no Fortran runtime; full-model wheels
+remain local research artifacts until all provider/runtime obligations are cleared.

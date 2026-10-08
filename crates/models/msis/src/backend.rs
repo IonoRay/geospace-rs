@@ -3,7 +3,7 @@
 use std::{
     ffi::c_char,
     fmt::Write as _,
-    fs::{self, File},
+    fs::{self, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
     sync::{Mutex, OnceLock},
@@ -21,7 +21,7 @@ const PARAMETER_BYTES: &[u8] =
 const PARAMETER_SHA256: &str = env!("IONORAY_NRLMSIS21_PARAMETER_SHA256");
 const FORTRAN_PATH_LIMIT: usize = 128;
 
-static PARAMETER_PATH: OnceLock<Result<PathBuf, String>> = OnceLock::new();
+static PARAMETER_PATH: OnceLock<Result<ParameterFile, String>> = OnceLock::new();
 static BACKEND: Mutex<BackendState> = Mutex::new(BackendState { storm_time: None });
 
 struct BackendState {
@@ -165,39 +165,49 @@ fn parameter_path() -> Result<&'static Path, MsisError> {
     PARAMETER_PATH
         .get_or_init(materialize_parameter)
         .as_ref()
-        .map(PathBuf::as_path)
+        .map(|file| file.path.as_path())
         .map_err(|error| MsisError::Asset(error.clone()))
 }
 
-fn materialize_parameter() -> Result<PathBuf, String> {
-    let digest_prefix = PARAMETER_SHA256
-        .get(..16)
-        .ok_or_else(|| "parameter SHA-256 is unexpectedly short".to_owned())?;
-    let directory = std::env::temp_dir()
-        .join("ionoray")
-        .join("nrlmsis21")
-        .join(digest_prefix);
-    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-    let target = directory.join("msis21.parm");
-    if target.is_file() && digest(&target)? == PARAMETER_SHA256 {
-        return Ok(target);
+struct ParameterFile {
+    // The process-level OnceLock retains this guard while Fortran may read it.
+    _directory: tempfile::TempDir,
+    path: PathBuf,
+}
+fn validate_parameter_path(path: &Path) -> Result<(), String> {
+    let path = path.to_str().ok_or("parameter path is not UTF-8")?;
+    if path.len() > FORTRAN_PATH_LIMIT {
+        return Err(format!(
+            "parameter path is {} bytes; upstream NRLMSIS accepts at most {FORTRAN_PATH_LIMIT}",
+            path.len()
+        ));
     }
-
-    let temporary = directory.join(format!("msis21.parm.part-{}", std::process::id()));
-    let mut file = File::create(&temporary).map_err(|error| error.to_string())?;
+    Ok(())
+}
+fn materialize_parameter() -> Result<ParameterFile, String> {
+    let prefix = format!("ionoray-msis21-{}-", &PARAMETER_SHA256[..8]);
+    let directory = tempfile::Builder::new()
+        .prefix(&prefix)
+        .rand_bytes(8)
+        .tempdir()
+        .map_err(|error| error.to_string())?;
+    let target = directory.path().join("msis21.parm");
+    validate_parameter_path(&target)?;
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&target)
+        .map_err(|error| error.to_string())?;
     file.write_all(PARAMETER_BYTES)
         .and_then(|()| file.sync_all())
         .map_err(|error| error.to_string())?;
-    if digest(&temporary)? != PARAMETER_SHA256 {
+    if digest(&target)? != PARAMETER_SHA256 {
         return Err("materialized parameter SHA-256 mismatch".to_owned());
     }
-    if let Err(error) = fs::rename(&temporary, &target) {
-        if !target.is_file() || digest(&target)? != PARAMETER_SHA256 {
-            return Err(error.to_string());
-        }
-        fs::remove_file(temporary).map_err(|remove_error| remove_error.to_string())?;
-    }
-    Ok(target)
+    Ok(ParameterFile {
+        _directory: directory,
+        path: target,
+    })
 }
 
 fn digest(path: &Path) -> Result<String, String> {
@@ -236,5 +246,22 @@ mod tests {
         let path = parameter_path().unwrap();
         assert!(path.as_os_str().len() <= FORTRAN_PATH_LIMIT);
         assert_eq!(digest(path).unwrap(), PARAMETER_SHA256);
+    }
+}
+
+#[cfg(test)]
+mod asset_tests {
+    use super::*;
+    #[test]
+    fn unique_parameters_retain_guard_and_upstream_path_limit() {
+        let first = materialize_parameter().unwrap();
+        let second = materialize_parameter().unwrap();
+        assert_ne!(first.path, second.path);
+        assert_eq!(digest(&first.path).unwrap(), PARAMETER_SHA256);
+        assert!(validate_parameter_path(Path::new(&"x".repeat(129))).is_err());
+        assert!(validate_parameter_path(Path::new(&"x".repeat(128))).is_ok());
+        let path = first.path.clone();
+        drop(first);
+        assert!(!path.exists());
     }
 }

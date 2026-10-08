@@ -194,7 +194,7 @@ mod tests {
             .unwrap();
         let sample = prepared.ap_index.unwrap();
         assert!(sample.interval.start <= epoch && epoch < sample.interval.end);
-        assert!(!sample.release_id.is_empty());
+        assert_ne!(sample.release_id.len(), 0);
         assert_eq!(
             prepared.input.geomagnetic_activity,
             HwmGeomagneticActivity::Disturbed {

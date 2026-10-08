@@ -7,6 +7,7 @@ This checks one switch
 configuration, not all IRI options or the model's observational accuracy.
 """
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -48,7 +49,12 @@ end program
 
 
 def main():
-    archive = ROOT / "crates/models/iri/cache/iri2020.tar"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--archive", type=Path, help="local pinned official archive")
+    args = parser.parse_args()
+    archive = args.archive or ROOT / "crates/models/iri/cache/iri2020.tar"
+    if not archive.is_file():
+        raise SystemExit(f"Missing {archive}; provide --archive with the pinned official release")
     for path, expected in [(archive, SHA256)]:
         if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
             raise SystemExit(f"SHA-256 mismatch: {path}")

@@ -3,9 +3,9 @@
 use std::{
     ffi::c_char,
     fmt::Write as _,
-    fs::{self, File},
+    fs::{self, OpenOptions},
     io::Write,
-    path::{Path, PathBuf},
+    path::Path,
     sync::{Mutex, OnceLock},
     time::Instant,
 };
@@ -34,7 +34,7 @@ const ASSETS: &[Asset] = &[
     },
 ];
 
-static ASSET_PATH: OnceLock<Result<PathBuf, String>> = OnceLock::new();
+static ASSET_PATH: OnceLock<Result<tempfile::TempDir, String>> = OnceLock::new();
 static BACKEND: Mutex<bool> = Mutex::new(false);
 
 struct Asset {
@@ -180,41 +180,38 @@ fn asset_path() -> Result<&'static Path, HwmError> {
     ASSET_PATH
         .get_or_init(materialize_assets)
         .as_ref()
-        .map(PathBuf::as_path)
+        .map(tempfile::TempDir::path)
         .map_err(|error| HwmError::Asset(error.clone()))
 }
 
-fn materialize_assets() -> Result<PathBuf, String> {
-    let root = std::env::temp_dir()
-        .join("ionoray")
-        .join("hwm14")
-        .join(env!("IONORAY_HWM14_ASSET_SET_SHA256"));
-    fs::create_dir_all(&root).map_err(|error| error.to_string())?;
+fn materialize_assets() -> Result<tempfile::TempDir, String> {
+    let prefix = format!(
+        "ionoray-hwm14-{}-",
+        &env!("IONORAY_HWM14_ASSET_SET_SHA256")[..8]
+    );
+    let directory = tempfile::Builder::new()
+        .prefix(&prefix)
+        .rand_bytes(8)
+        .tempdir()
+        .map_err(|error| error.to_string())?;
     for asset in ASSETS {
-        materialize_asset(&root, asset)?;
+        materialize_asset(directory.path(), asset)?;
     }
-    Ok(root)
+    Ok(directory)
 }
 
 fn materialize_asset(root: &Path, asset: &Asset) -> Result<(), String> {
     let target = root.join(asset.name);
-    if target.is_file() && digest(&target)? == asset.sha256 {
-        return Ok(());
-    }
-
-    let temporary = root.join(format!("{}.part-{}", asset.name, std::process::id()));
-    let mut file = File::create(&temporary).map_err(|error| error.to_string())?;
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&target)
+        .map_err(|error| error.to_string())?;
     file.write_all(asset.bytes)
         .and_then(|()| file.sync_all())
         .map_err(|error| error.to_string())?;
-    if digest(&temporary)? != asset.sha256 {
+    if digest(&target)? != asset.sha256 {
         return Err(format!("materialized {} SHA-256 mismatch", asset.name));
-    }
-    if let Err(error) = fs::rename(&temporary, &target) {
-        if !target.is_file() || digest(&target)? != asset.sha256 {
-            return Err(error.to_string());
-        }
-        fs::remove_file(temporary).map_err(|remove_error| remove_error.to_string())?;
     }
     Ok(())
 }
@@ -240,4 +237,32 @@ unsafe extern "C" {
         ap: f32,
         wind: *mut f32,
     );
+}
+
+#[cfg(test)]
+mod asset_tests {
+    use super::*;
+    #[test]
+    fn directories_are_unique_verified_and_do_not_overwrite() {
+        let first = materialize_assets().unwrap();
+        let second = materialize_assets().unwrap();
+        assert_ne!(first.path(), second.path());
+        assert!(
+            first
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .starts_with("ionoray-hwm14-")
+        );
+        assert!(materialize_asset(first.path(), &ASSETS[0]).is_err());
+        assert_eq!(
+            digest(&first.path().join(ASSETS[0].name)).unwrap(),
+            ASSETS[0].sha256
+        );
+        let path = first.path().to_owned();
+        first.close().unwrap();
+        assert!(!path.exists());
+    }
 }

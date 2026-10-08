@@ -1,12 +1,21 @@
+#[cfg(any(feature = "igrf", feature = "iri", feature = "msis"))]
+use crate::request::Arguments;
+#[cfg(feature = "iri")]
+use crate::request::IRI;
+#[cfg(feature = "msis")]
+use crate::request::MSIS;
 use crate::{
     api,
     error::{GeospaceError, translate},
-    request::{Arguments, IRI, MSIS},
 };
+#[cfg(feature = "igrf")]
 use ionoray_geospace::igrf::{Igrf, IgrfInput, IgrfVersion};
-use pyo3::{prelude::*, types::PyDict};
+use pyo3::prelude::*;
+#[cfg(any(feature = "igrf", feature = "iri", feature = "msis"))]
+use pyo3::types::PyDict;
 
 #[test]
+#[cfg(feature = "iri")]
 fn driver_parsing_preserves_zero_negative_and_none() {
     Python::attach(|py| {
         let dict = py
@@ -28,6 +37,7 @@ fn driver_parsing_preserves_zero_negative_and_none() {
     });
 }
 #[test]
+#[cfg(feature = "msis")]
 fn rejects_unknown_history_key_and_bool() {
     Python::attach(|py| {
         for source in ["{'ap_history': {'unknown': 1}}", "{'f107a': True}"] {
@@ -46,6 +56,7 @@ fn rejects_unknown_history_key_and_bool() {
     });
 }
 #[test]
+#[cfg(feature = "igrf")]
 fn direct_igrf_matches_rust_and_rejects_non_utc() {
     Python::attach(|py| {
         let dict = py.eval(pyo3::ffi::c_str!("dict(at='2020-07-01T12:00:00Z', latitude_deg=30., longitude_deg=120., altitude_km=300.)"), None, None).unwrap().cast_into::<PyDict>().unwrap();
@@ -72,7 +83,9 @@ fn direct_igrf_matches_rust_and_rejects_non_utc() {
 #[allow(clippy::default_trait_access)] // The report's store summary is a transitive type.
 fn typed_errors_have_stable_codes() {
     Python::attach(|py| {
-        use ionoray_geospace::{GeospaceError as E, iri::IriError};
+        use ionoray_geospace::GeospaceError as E;
+        #[cfg(feature = "iri")]
+        use ionoray_geospace::iri::IriError;
         use ionoray_indices::{
             CoverageGap, CoverageGapReason, IndexDataset, IndexField, RangeSyncReport,
             RangeSyncStatus, SourceCheckStatus, SyncMode,
@@ -109,8 +122,11 @@ fn typed_errors_have_stable_codes() {
         for (error, code) in [
             (missing, "data_unavailable"),
             (refresh_failed, "data_refresh_failed"),
+            #[cfg(feature = "iri")]
             (E::Iri(IriError::BackendUnavailable), "model_unavailable"),
+            #[cfg(feature = "iri")]
             (E::Iri(IriError::BackendPoisoned), "model_failed"),
+            #[cfg(feature = "msis")]
             (E::InvalidMsisPreparation("bad"), "internal_error"),
         ] {
             let error = translate(py, error);
@@ -124,6 +140,47 @@ fn typed_errors_have_stable_codes() {
                     .unwrap(),
                 code
             );
+        }
+    });
+}
+
+#[test]
+fn capabilities_match_build_and_absent_models_fail_explicitly() {
+    assert!(api::capabilities().contains(&"indices"));
+    assert!(
+        api::capabilities()
+            .iter()
+            .all(|name| ionoray_geospace::capabilities().contains(name))
+    );
+    for (name, enabled) in [
+        ("igrf", cfg!(feature = "igrf")),
+        ("iri", cfg!(feature = "iri")),
+        ("hwm", cfg!(feature = "hwm")),
+        ("msis", cfg!(feature = "msis")),
+    ] {
+        assert_eq!(api::capabilities().contains(&name), enabled);
+    }
+    Python::attach(|py| {
+        for name in ["igrf", "iri", "hwm", "msis"] {
+            if !api::capabilities().contains(&name) {
+                let error = match name {
+                    "igrf" => api::igrf(py, None),
+                    "iri" => api::iri(py, None),
+                    "hwm" => api::hwm(py, None),
+                    "msis" => api::msis(py, None),
+                    _ => unreachable!(),
+                }
+                .unwrap_err();
+                assert_eq!(
+                    error
+                        .value(py)
+                        .getattr("code")
+                        .unwrap()
+                        .extract::<String>()
+                        .unwrap(),
+                    "model_unavailable"
+                );
+            }
         }
     });
 }

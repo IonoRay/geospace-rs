@@ -173,7 +173,7 @@ mod tests {
             })
             .await
             .unwrap();
-        assert!(report.gaps.is_empty());
+        assert_eq!(report.gaps.len(), 0);
         // Synthetic failed source check after real, complete local recovery.
         report.mode = SyncMode::Refresh;
         report.source_check_status = SourceCheckStatus::Failed;

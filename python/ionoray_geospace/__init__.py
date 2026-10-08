@@ -5,7 +5,7 @@ import weakref
 
 from ._native import (
     capabilities, init_tracing as _init_tracing, igrf, iri, hwm, msis,
-    Session, PreparedIri, PreparedHwm, PreparedMsis, GeospaceError,
+    Session, GeospaceError,
 )
 
 _tracing_guards: weakref.WeakSet[object] = weakref.WeakSet()
@@ -30,7 +30,14 @@ def _close_tracing_guards() -> None:
 atexit.register(_close_tracing_guards)
 
 __all__ = ["capabilities", "init_tracing", "igrf", "iri", "hwm", "msis",
-           "Session", "PreparedIri", "PreparedHwm", "PreparedMsis", "GeospaceError"]
+           "Session", "GeospaceError"]
+
+from . import _native
+for _capability, _name in [("iri", "PreparedIri"), ("hwm", "PreparedHwm"), ("msis", "PreparedMsis")]:
+    if _capability in capabilities():
+        globals()[_name] = getattr(_native, _name)
+        __all__.append(_name)
+del _capability, _name
 
 from .types import (DataPolicy, Activity, ApHistory, IgrfResult, IriResult, HwmResult,
                     MsisResult, IriEvaluation, HwmEvaluation, MsisEvaluation)

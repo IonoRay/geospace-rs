@@ -62,9 +62,9 @@ async fn complete_explicit_modes_skip_all_queries_under_every_policy() {
             assert!(evaluated.indices.f107a.is_none());
             assert!(evaluated.indices.f107_previous_day.is_none());
             assert!(evaluated.indices.ap_daily.is_none());
-            assert!(evaluated.indices.ap_three_hourly.is_empty());
-            assert!(calls.reads().is_empty());
-            assert!(calls.preparations().is_empty());
+            assert_eq!(evaluated.indices.ap_three_hourly.len(), 0);
+            assert_eq!(calls.reads().len(), 0);
+            assert_eq!(calls.preparations().len(), 0);
         }
     }
     assert_eq!(

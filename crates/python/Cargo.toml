@@ -16,10 +16,15 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = []
 extension-module = ["pyo3/extension-module"]
+igrf = ["ionoray-geospace/igrf"]
+iri = ["ionoray-geospace/iri"]
+hwm = ["ionoray-geospace/hwm"]
+msis = ["ionoray-geospace/msis"]
+standard = ["igrf", "iri", "hwm", "msis"]
 
 [dependencies]
 ionoray-indices.workspace = true
-ionoray-geospace = { workspace = true, features = ["standard"] }
+ionoray-geospace = { workspace = true, default-features = false, features = ["indices"] }
 ionoray-observability.workspace = true
 pyo3 = { version = "0.27.2" }
 serde.workspace = true

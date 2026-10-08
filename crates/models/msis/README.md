@@ -7,9 +7,10 @@ Independent Rust API for NRLMSIS neutral-atmosphere models.
 The default `nrlmsis21` feature acquires the official NRL release at Cargo build
 time, verifies the archive and every consumed file by SHA-256, generates a small
 `ISO_C_BINDING` shim, and compiles a local static Fortran library in `OUT_DIR`.
-The verbatim pinned archive is included in Git and the packaged crate sources as the
-deterministic build fallback. Its restricted NRL license remains in the archive
-and is also available as [nrlmsis2.1_license.txt](nrlmsis2.1_license.txt).
+The pinned archive is optional: cache-snapshots retains it locally; main and
+source packages exclude it. Supply verified explicit sources/cache or permit
+fixed build-time acquisition. The exact restricted NRL license accompanies the
+crate as [nrlmsis2.1_license.txt](nrlmsis2.1_license.txt).
 
 ```bash
 nix develop .#default --command cargo build -p ionoray-msis
@@ -34,8 +35,12 @@ Resolution order is:
 
 1. `IONORAY_NRLMSIS21_SOURCE_DIR`;
 2. a complete verified source already present in Cargo `OUT_DIR`;
-3. when online, the fixed [official NRL archive](https://map.nrl.navy.mil/map/pub/nrl/NRLMSIS/NRLMSIS2.1/nrlmsis2.1.tar.gz);
-4. the packaged verified archive when offline or remote acquisition fails.
+3. a verified archive from `IONORAY_CACHE_ROOT` or the local optional cache;
+4. when permitted and no verified source remains, the fixed [official NRL archive](https://map.nrl.navy.mil/map/pub/nrl/NRLMSIS/NRLMSIS2.1/nrlmsis2.1.tar.gz).
+
+An existing selected cache must pass its hash check even when OUT_DIR is reusable.
+A fresh offline build without a verified source fails explicitly; see
+[build sources](../../../docs/releases.md#build-time-sources).
 
 `IONORAY_NRLMSIS21_OFFLINE=1` remains available when only this backend should
 be forced offline; `IONORAY_OFFLINE=1` applies to every integrated model build.
@@ -67,7 +72,7 @@ through the unmodified official source with `switch_legacy(9) = -1`. Replay both
 without the Rust adapter:
 
 ```bash
-nix develop .#default --command python3 scripts/verify_nrlmsis21_reference.py
+nix develop .#default --command python3 scripts/verify_nrlmsis21_reference.py --archive /absolute/cache-root/crates/models/msis/cache/nrlmsis2.1.tar.gz
 nix develop .#default --command env IONORAY_OFFLINE=1 \
   cargo test --locked --offline -p ionoray-msis --lib
 ```

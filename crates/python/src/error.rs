@@ -1,24 +1,38 @@
 //! Stable exception codes derived from typed errors, never message matching.
-use ionoray_geospace::{
-    GeospaceError as Error, hwm::HwmError, igrf::IgrfError, iri::IriError, msis::MsisError,
-};
+#[cfg(any(
+    feature = "igrf",
+    feature = "iri",
+    feature = "hwm",
+    feature = "msis",
+    test
+))]
+use ionoray_geospace::GeospaceError as Error;
+#[cfg(feature = "hwm")]
+use ionoray_geospace::hwm::HwmError;
+#[cfg(feature = "igrf")]
+use ionoray_geospace::igrf::IgrfError;
+#[cfg(feature = "iri")]
+use ionoray_geospace::iri::IriError;
+#[cfg(feature = "msis")]
+use ionoray_geospace::msis::MsisError;
+#[cfg(any(
+    feature = "igrf",
+    feature = "iri",
+    feature = "hwm",
+    feature = "msis",
+    test
+))]
 use ionoray_indices::{IndexError, SourceCheckStatus};
-use pyo3::{
-    create_exception,
-    exceptions::{PyRuntimeError, PyValueError},
-    prelude::*,
-};
+use pyo3::{create_exception, exceptions::PyRuntimeError, prelude::*};
 create_exception!(
     ionoray_geospace,
     GeospaceError,
     PyRuntimeError,
     "Data or model execution failed; inspect code and message."
 );
-
 pub(crate) fn failure(py: Python<'_>, code: &str, message: impl std::fmt::Display) -> PyErr {
     let message = message.to_string();
     let error = GeospaceError::new_err(message.clone());
-    // Fresh built-in exception instances always have a writable attribute dictionary.
     if let Err(attribute_error) = error
         .value(py)
         .setattr("code", code)
@@ -28,26 +42,39 @@ pub(crate) fn failure(py: Python<'_>, code: &str, message: impl std::fmt::Displa
     }
     error
 }
+#[cfg(any(
+    feature = "igrf",
+    feature = "iri",
+    feature = "hwm",
+    feature = "msis",
+    test
+))]
 pub(crate) fn translate(py: Python<'_>, error: Error) -> PyErr {
-    // Geospace may gain feature-gated error variants (for example CLI JSON).
-    #[allow(clippy::match_wildcard_for_single_variants)]
+    // Workspace feature unification can add CLI-only variants to GeospaceError.
+    #[allow(unreachable_patterns, clippy::match_wildcard_for_single_variants)]
     let code = match &error {
-        Error::Position(_)
-        | Error::InvalidEpoch(_)
-        | Error::InvalidYear(_)
-        | Error::Igrf(IgrfError::EpochOutOfRange(_) | IgrfError::AltitudeOutOfRange(_))
-        | Error::Iri(
+        Error::Position(_) | Error::InvalidEpoch(_) | Error::InvalidYear(_) => {
+            return PyValueError::new_err(error.to_string());
+        }
+        #[cfg(feature = "igrf")]
+        Error::Igrf(IgrfError::EpochOutOfRange(_) | IgrfError::AltitudeOutOfRange(_)) => {
+            return PyValueError::new_err(error.to_string());
+        }
+        #[cfg(feature = "iri")]
+        Error::Iri(
             IriError::InvalidDriver { .. }
             | IriError::AltitudeOutOfRange(_)
             | IriError::EpochOutOfRange(_)
             | IriError::InputOutOfRange { .. },
-        )
-        | Error::Hwm(
+        ) => return PyValueError::new_err(error.to_string()),
+        #[cfg(feature = "hwm")]
+        Error::Hwm(
             HwmError::InvalidAp(_)
             | HwmError::AltitudeBelowSurface(_)
             | HwmError::InputOutOfRange { .. },
-        )
-        | Error::Msis(MsisError::InvalidDriver { .. } | MsisError::AltitudeBelowSurface(_)) => {
+        ) => return PyValueError::new_err(error.to_string()),
+        #[cfg(feature = "msis")]
+        Error::Msis(MsisError::InvalidDriver { .. } | MsisError::AltitudeBelowSurface(_)) => {
             return PyValueError::new_err(error.to_string());
         }
         Error::PartialIndices(report)
@@ -63,11 +90,32 @@ pub(crate) fn translate(py: Python<'_>, error: Error) -> PyErr {
             | IndexError::SourceUnavailable { .. },
         ) => "data_unavailable",
         Error::Store(_) | Error::Indices(_) => "data_access",
-        Error::Iri(IriError::BackendUnavailable)
-        | Error::Hwm(HwmError::BackendUnavailable)
-        | Error::Msis(MsisError::BackendUnavailable) => "model_unavailable",
-        Error::Igrf(_) | Error::Iri(_) | Error::Hwm(_) | Error::Msis(_) => "model_failed",
+        #[cfg(feature = "iri")]
+        Error::Iri(IriError::BackendUnavailable) => "model_unavailable",
+        #[cfg(feature = "hwm")]
+        Error::Hwm(HwmError::BackendUnavailable) => "model_unavailable",
+        #[cfg(feature = "msis")]
+        Error::Msis(MsisError::BackendUnavailable) => "model_unavailable",
+        #[cfg(feature = "igrf")]
+        Error::Igrf(_) => "model_failed",
+        #[cfg(feature = "iri")]
+        Error::Iri(_) => "model_failed",
+        #[cfg(feature = "hwm")]
+        Error::Hwm(_) => "model_failed",
+        #[cfg(feature = "msis")]
+        Error::Msis(_) => "model_failed",
+        #[cfg(feature = "msis")]
+        Error::InvalidMsisPreparation(_) => "internal_error",
         _ => "internal_error",
     };
     failure(py, code, error)
 }
+
+#[cfg(any(
+    feature = "igrf",
+    feature = "iri",
+    feature = "hwm",
+    feature = "msis",
+    test
+))]
+use pyo3::exceptions::PyValueError;

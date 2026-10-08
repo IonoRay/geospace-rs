@@ -8,3 +8,10 @@ crates/models/*/data/* -text
 crates/models/hwm/data/reference-profiles.txt -diff
 crates/models/iri/IRI-LICENSE.txt -text
 crates/models/msis/nrlmsis2.1_license.txt -text -diff
+# These shared notice bytes are also hashed by assets/cache-manifest.json.
+LICENSE -text
+LICENSE-MIT -text
+LICENSE-APACHE -text
+THIRD_PARTY_NOTICES.md -text
+crates/indices/IRI-LICENSE.txt -text
+crates/indices/GFZ-NOTICE.txt -text

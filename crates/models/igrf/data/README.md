@@ -8,7 +8,11 @@ by NOAA/NCEI:
 - retrieved: 2026-07-12
 - SHA-256: `8f8d88403028fc4ee92c4f38d97b46e0a87e2cfc496045b43c9e26c1d6b0903c`
 
-The file is retained verbatim. Runtime parsing is deterministic and its digest
+The file is retained verbatim on cache-snapshots and excluded from main/source
+packages. Build acquisition accepts `IONORAY_IGRF14_COEFFICIENT_FILE` or
+`IONORAY_CACHE_ROOT`, verifies the fixed hash and embeds the coefficients. Fresh
+offline builds without a source fail explicitly; runtime evaluation never fetches
+coefficients. Runtime parsing is deterministic and its digest
 is included in every evaluation's provenance.
 
 ## Reproducible numerical reference (2026-09-23)

@@ -439,7 +439,7 @@ mod tests {
         assert!(prepared.indices.f107a.is_none());
         assert!(prepared.indices.f107_previous_day.is_none());
         assert!(prepared.indices.ap_daily.is_none());
-        assert!(prepared.indices.ap_three_hourly.is_empty());
+        assert_eq!(prepared.indices.ap_three_hourly.len(), 0);
     }
 
     fn assert_close(actual: f64, expected: f64) {

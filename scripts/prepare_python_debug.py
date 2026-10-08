@@ -1,27 +1,31 @@
-"""Rebuild the local extension offline using the existing Nix/maturin/venv only.
-
-Run: nix develop .#default --command python3 scripts/prepare_python_debug.py
+"""Build bindings with explicit optional models, using the existing Nix/maturin/venv.
+Run: nix develop .#default --command python3 scripts/prepare_python_debug.py --features standard
 """
+import argparse
 import os
 from pathlib import Path
 import subprocess
 
-
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--features", default="", help="comma-separated igrf,iri,hwm,msis,standard")
+    parser.add_argument("--allow-model-network", action="store_true", help="permit fixed build assets to be acquired; Cargo dependencies remain offline")
+    args = parser.parse_args()
+    selected = set(filter(None, args.features.split(",")))
+    if selected - {"igrf", "iri", "hwm", "msis", "standard"}:
+        parser.error("unknown model feature")
     root = Path(__file__).resolve().parents[1]
     venv = root / ".venv"
     interpreter = venv / "bin/python"
     if not interpreter.is_file():
-        raise SystemExit(f"Missing existing interpreter {interpreter}; no environment was installed.")
-    env = dict(os.environ, IONORAY_OFFLINE="1", VIRTUAL_ENV=str(venv),
-               PYO3_PYTHON=str(interpreter), IONORAY_IRI2020_OFFLINE="1",
-               IONORAY_HWM14_OFFLINE="1", IONORAY_NRLMSIS21_OFFLINE="1")
+        raise SystemExit(f"Missing interpreter {interpreter}; create the documented venv first.")
+    env = dict(os.environ, VIRTUAL_ENV=str(venv), PYO3_PYTHON=str(interpreter))
+    if not args.allow_model_network:
+        env["IONORAY_OFFLINE"] = "1"
     env["PATH"] = str(venv / "bin") + os.pathsep + env["PATH"]
-    subprocess.run(["maturin", "develop", "--locked", "--offline"], check=True, cwd=root, env=env)
-    subprocess.run([str(interpreter), "-c",
-                    "import ionoray_geospace as gs; assert hasattr(gs, 'Session'); assert not hasattr(gs, 'point')"],
-                   check=True, cwd=root, env=env)
-
+    features = ",".join(["extension-module", *sorted(selected)])
+    subprocess.run(["maturin", "develop", "--locked", "--offline", "--no-default-features", "--features", features], check=True, cwd=root, env=env)
+    subprocess.run([str(interpreter), "-c", "import ionoray_geospace as gs; print(gs.capabilities()); assert hasattr(gs, 'Session')"], check=True, cwd=root, env=env)
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "repository": "IonoRay/geospace-rs",
+  "snapshot_id": "initial-assets-2026-10-08",
+  "files": [
+    {
+      "path": "LICENSE",
+      "group": "notices",
+      "size": 707,
+      "sha256": "172edf16d69a04447ee878916389b6a701bd08a43d8268dbe1e5b3d262b3dad5"
+    },
+    {
+      "path": "LICENSE-APACHE",
+      "group": "notices",
+      "size": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "LICENSE-MIT",
+      "group": "notices",
+      "size": 1077,
+      "sha256": "9193a6359de15b10d9b7282eea32a1dd12fa434483a69e22e0975ee034ffdfe4"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "group": "notices",
+      "size": 7513,
+      "sha256": "23892ad50fecb38f9b2b0661bfc8d4f8669b179d26fcd063627347d749971a78"
+    },
+    {
+      "path": "crates/indices/GFZ-NOTICE.txt",
+      "group": "notices",
+      "size": 3592,
+      "sha256": "0ec6f0c2269b19cac9574eece0c46358251b65aa7512d66661795a1f4a3005e1"
+    },
+    {
+      "path": "crates/indices/IRI-LICENSE.txt",
+      "group": "notices",
+      "size": 1072,
+      "sha256": "6fadd49df557f5d5bd8b9ab6630affc850867130361352849d09721e5f8617cc"
+    },
+    {
+      "path": "crates/indices/cache/Kp_ap_Ap_SN_F107_since_1932.txt",
+      "group": "indices",
+      "size": 5493862,
+      "sha256": "a74cd1096e7b7711690ffba819ddf7149bf32f07a787092510407e5aa1742029"
+    },
+    {
+      "path": "crates/indices/cache/apf107.dat",
+      "group": "indices",
+      "size": 1383312,
+      "sha256": "25bb20ff10c9cc9bf3ec9b80774e856119145d0ce5bbf65dfd3f2bd046ef9262"
+    },
+    {
+      "path": "crates/indices/cache/ig_rz.dat",
+      "group": "indices",
+      "size": 10412,
+      "sha256": "48e6ac1a501c39ad9842fcf75d63a86303e09852406ee4153275d4b82f9e8804"
+    },
+    {
+      "path": "crates/models/hwm/cache/hwm14.tgz",
+      "group": "hwm",
+      "size": 216852,
+      "sha256": "4de451beeadef7b3ec3aa5b91129ea98866b9e7156cecf4be1343c33a6f57978"
+    },
+    {
+      "path": "crates/models/hwm/data/reference-profiles.txt",
+      "group": "hwm",
+      "size": 3083,
+      "sha256": "06f393ce2bd5782e0d54409149eef048b0cb21b5f25b3cb3c17971fe816ddb99"
+    },
+    {
+      "path": "crates/models/igrf/data/igrf14coeffs.txt",
+      "group": "igrf",
+      "size": 42411,
+      "sha256": "8f8d88403028fc4ee92c4f38d97b46e0a87e2cfc496045b43c9e26c1d6b0903c"
+    },
+    {
+      "path": "crates/models/iri/IRI-LICENSE.txt",
+      "group": "notices",
+      "size": 1072,
+      "sha256": "6fadd49df557f5d5bd8b9ab6630affc850867130361352849d09721e5f8617cc"
+    },
+    {
+      "path": "crates/models/iri/cache/iri2020.tar",
+      "group": "iri",
+      "size": 5966848,
+      "sha256": "3d1ab8c6e37ec2bf80a805264a2d6996d6cebf6cbab6369b8f329f0ef287d2f8"
+    },
+    {
+      "path": "crates/models/msis/cache/nrlmsis2.1.tar.gz",
+      "group": "msis",
+      "size": 181376,
+      "sha256": "41e47b29f795d36a5cc252b2858aa2a384c4a7323ace3d48d3ea2f2b37a1a6a8"
+    },
+    {
+      "path": "crates/models/msis/nrlmsis2.1_license.txt",
+      "group": "notices",
+      "size": 4444,
+      "sha256": "46352d9b1303b64d2e73d60e24d2939eccd1496c911b4e39b71fc7b3d5b8dd92"
+    }
+  ]
+}

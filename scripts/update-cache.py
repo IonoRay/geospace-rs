@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refresh bundled geospace caches from their authoritative upstreams."""
+"""Prepare upstream assets and metadata outside the checkout for deliberate snapshot updates."""
 
 from __future__ import annotations
 
@@ -7,6 +7,10 @@ import argparse
 import calendar
 import datetime as dt
 import hashlib
+import io
+import json
+import tarfile
+import shutil
 import os
 from pathlib import Path
 import re
@@ -69,6 +73,12 @@ INDEX_SOURCES = (
 
 MODEL_SOURCES = (
     Source(
+        "IGRF-14 coefficients",
+        "https://www.ngdc.noaa.gov/IAGA/vmod/coeffs/igrf14coeffs.txt",
+        ROOT / "crates/models/igrf/data/igrf14coeffs.txt",
+        pinned_sha256="8f8d88403028fc4ee92c4f38d97b46e0a87e2cfc496045b43c9e26c1d6b0903c",
+    ),
+    Source(
         "NRLMSIS 2.1",
         "https://map.nrl.navy.mil/map/pub/nrl/NRLMSIS/NRLMSIS2.1/"
         "nrlmsis2.1.tar.gz",
@@ -95,8 +105,8 @@ MODEL_SOURCES = (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Download and validate every bundled cache, then update rolling "
-            "index snapshots atomically. Run inside the default Nix dev shell."
+            "Prepare validated upstream snapshots and metadata outside the "
+            "checkout for review. Run inside the default Nix dev shell."
         )
     )
     parser.add_argument(
@@ -128,6 +138,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="write validated caches without running the Rust verification gates",
     )
+    parser.add_argument("--dest", type=Path, help="explicit preparation root; defaults to a new temporary directory")
     args = parser.parse_args()
     args.remote_host = args.remote_host.strip()
     if args.transport == "remote" and not args.remote_host:
@@ -393,10 +404,11 @@ def render_index_readme(
     ap_hash, ap_years = metadata["IRI AP/F10.7"]
     text = f'''# Bundled index snapshot
 
-These verbatim upstream files are the deterministic fallback for the rolling
-indices required by the currently integrated models. Online synchronization
-still takes precedence. `SyncPolicy::Offline` imports only this snapshot and
-existing local CAS objects, without creating an HTTP request.
+These optional verbatim snapshots are retained on cache-snapshots; main and
+source packages exclude their bytes. An explicit IONORAY_CACHE_ROOT can supply
+them at build time. Requested online source checks take precedence; Ensure can
+reuse complete local coverage. Offline uses existing CAS/embedded snapshots and
+reports gaps when insufficient, without creating an HTTP request.
 
 Snapshot: {snapshot_date}
 
@@ -453,52 +465,18 @@ def atomic_write(path: Path, data: bytes) -> None:
         raise
 
 
-def verify(include_models: bool) -> None:
-    run(["cargo", "fmt", "--all", "--", "--check"])
-    run(["cargo", "test", "-p", "ionoray-indices", "download::cache::tests"])
-    run(
-        [
-            "cargo",
-            "test",
-            "-p",
-            "ionoray-indices",
-            "offline_policy_bootstraps_packaged_model_driver_cache",
-        ]
-    )
-    package = subprocess.run(
-        ["cargo", "package", "-p", "ionoray-indices", "--allow-dirty", "--no-verify", "--list"],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if package.returncode != 0:
-        raise UpdateError(f"cargo package --list failed:\n{package.stderr}")
-    for name in ("Kp_ap_Ap_SN_F107_since_1932.txt", "ig_rz.dat", "apf107.dat"):
-        if f"cache/{name}" not in package.stdout:
-            raise UpdateError(f"cargo package omitted cache/{name}")
+def verify(destination: Path, include_models: bool) -> None:
     if include_models:
-        with tempfile.TemporaryDirectory(prefix="geospace-rs-offline-target-") as target:
-            env = os.environ.copy()
-            env["IONORAY_OFFLINE"] = "1"
-            env["CARGO_TARGET_DIR"] = target
-            run(
-                [
-                    "cargo",
-                    "check",
-                    "-p",
-                    "ionoray-msis",
-                    "-p",
-                    "ionoray-hwm",
-                    "-p",
-                    "ionoray-iri",
-                ],
-                env=env,
-            )
+        env = dict(os.environ, IONORAY_OFFLINE="1", IONORAY_CACHE_ROOT=str(destination))
+        run(["cargo", "check", "--locked", "--offline", "-p", "ionoray-hwm", "-p", "ionoray-msis", "-p", "ionoray-iri", "-p", "ionoray-igrf"], env=env)
 
 
 def main() -> int:
     args = parse_args()
+    destination = args.dest.expanduser().resolve() if args.dest else (Path(tempfile.gettempdir()) / f"ionoray-cache-prepare-{uuid.uuid4().hex}").resolve()
+    if destination == ROOT or ROOT in destination.parents:
+        raise UpdateError("--dest must be outside the source checkout; prepare then review metadata and snapshots")
+    print(f"Preparation root: {destination}")
     sources = INDEX_SOURCES if args.indices_only else INDEX_SOURCES + MODEL_SOURCES
     staged: dict[Path, bytes] = {}
     metadata: dict[str, tuple[str, tuple[int, int]]] = {}
@@ -519,9 +497,9 @@ def main() -> int:
                     f"{source.pinned_sha256}, got {sha256}. Update the model manifest, "
                     "patches, and reference tests deliberately; this script will not upgrade it."
                 )
-            staged[source.destination] = data
+            staged[destination / source.destination.relative_to(ROOT)] = data
 
-        index_data = {source.name: staged[source.destination] for source in INDEX_SOURCES}
+        index_data = {source.name: staged[destination / source.destination.relative_to(ROOT)] for source in INDEX_SOURCES}
         metadata["GFZ Kp/ap/Ap/SN/F10.7"] = (
             digest(index_data["GFZ Kp/ap/Ap/SN/F10.7"]),
             gfz_coverage(index_data["GFZ Kp/ap/Ap/SN/F10.7"]),
@@ -535,15 +513,50 @@ def main() -> int:
             apf107_coverage(index_data["IRI AP/F10.7"]),
         )
 
-    staged[MANIFEST] = render_manifest(int(snapshot.timestamp() * 1000), metadata)
-    staged[INDEX_README] = render_index_readme(snapshot.date().isoformat(), metadata)
-    staged[ROOT_README] = update_root_readme(ROOT_README.read_bytes(), metadata)
+    staged[destination / MANIFEST.relative_to(ROOT)] = render_manifest(int(snapshot.timestamp() * 1000), metadata)
+    staged[destination / INDEX_README.relative_to(ROOT)] = render_index_readme(snapshot.date().isoformat(), metadata)
+    staged[destination / ROOT_README.relative_to(ROOT)] = update_root_readme(ROOT_README.read_bytes(), metadata)
+
+    if not args.indices_only:
+        archive_data = staged[destination / "crates/models/hwm/cache/hwm14.tgz"]
+        with tarfile.open(fileobj=io.BytesIO(archive_data)) as archive:
+            member = archive.extractfile("HWM14/Check/gfortran.txt")
+            if member is None:
+                raise UpdateError("official HWM reference is missing")
+            reference = member.read()[:3083]
+        if digest(reference) != "06f393ce2bd5782e0d54409149eef048b0cb21b5f25b3cb3c17971fe816ddb99":
+            raise UpdateError("official HWM reference excerpt changed")
+        staged[destination / "crates/models/hwm/data/reference-profiles.txt"] = reference
+
+    manifest = json.loads((ROOT / "assets/cache-manifest.json").read_text())
+    complete = True
+    for entry in manifest["files"]:
+        path = destination / entry["path"]
+        if entry["group"] == "notices":
+            staged[path] = (ROOT / entry["path"]).read_bytes()
+        data = staged.get(path)
+        if data is None and path.is_file():
+            data = path.read_bytes()
+        if data is None:
+            complete = False
+            continue
+        if entry["group"] not in ("notices", "indices") and digest(data) != entry["sha256"]:
+            raise UpdateError(f"fixed asset changed: {entry['path']}")
+        entry.update(size=len(data), sha256=digest(data))
+    manifest_path = destination / "assets/cache-manifest.json"
+    if complete:
+        manifest["snapshot_id"] = "prepared-" + snapshot.date().isoformat()
+        staged[manifest_path] = (json.dumps(manifest, indent=2) + "\n").encode()
+    elif manifest_path.exists():
+        raise UpdateError("partial preparation would leave a stale shared manifest; use a new destination or supply all fixed assets")
+    else:
+        print("Partial preparation: combine all pinned assets before generating the GitHub sync manifest.")
 
     print("\nValidated cache batch:")
     for source in sources:
-        data = staged[source.destination]
+        data = staged[destination / source.destination.relative_to(ROOT)]
         old_hash = (
-            digest(source.destination.read_bytes()) if source.destination.exists() else "missing"
+            digest((destination / source.destination.relative_to(ROOT)).read_bytes()) if (destination / source.destination.relative_to(ROOT)).exists() else "missing"
         )
         coverage = metadata.get(source.name)
         suffix = f", complete years {coverage[1][0]}-{coverage[1][1]}" if coverage else ""
@@ -559,7 +572,7 @@ def main() -> int:
         for path, data in staged.items():
             atomic_write(path, data)
         if not args.no_verify:
-            verify(not args.indices_only)
+            verify(destination, not args.indices_only)
     except BaseException:
         print("Update failed; restoring the previous cache batch.", file=sys.stderr)
         for path, original in originals.items():
@@ -569,7 +582,7 @@ def main() -> int:
                 atomic_write(path, original)
         raise
 
-    print("Cache batch updated successfully.")
+    print("Prepared cache and metadata; review and apply common metadata on main, then assets on cache-snapshots.")
     return 0
 
 

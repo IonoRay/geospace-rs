@@ -156,9 +156,12 @@ def compare(actual, expected):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--archive", type=Path, help="local pinned official archive")
     parser.add_argument("--show", action="store_true", help="print the independently computed JSON")
     args = parser.parse_args()
-    archive = MODEL / "cache/nrlmsis2.1.tar.gz"
+    archive = args.archive or MODEL / "cache/nrlmsis2.1.tar.gz"
+    if not archive.is_file():
+        raise SystemExit(f"Missing {archive}; provide --archive with the fixed official release (docs/releases.md)")
     if hashlib.sha256(archive.read_bytes()).hexdigest() != ARCHIVE_SHA256:
         raise SystemExit("official archive SHA-256 mismatch")
 

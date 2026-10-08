@@ -50,7 +50,7 @@ async fn single_pretty_json_and_empty_batch() {
     assert_eq!(rows[0]["status"], "succeeded");
     let (status, rows) = records(b"", true).await;
     assert_eq!(status, ExecuteStatus::Succeeded);
-    assert!(rows.is_empty());
+    assert_eq!(rows.len(), 0);
     let (_, rows) = records(b"", false).await;
     assert_eq!(rows[0]["error"]["code"], "invalid_json");
 }

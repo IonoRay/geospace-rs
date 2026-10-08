@@ -6,48 +6,116 @@
       "type": "process",
       "command": "nix",
       "args": [
-        "develop", ".#default", "--command", "env", "IONORAY_OFFLINE=1",
-        "cargo", "build", "--locked", "--offline", "--package", "ionoray-msis",
-        "--example", "nrlmsis21_explicit_input"
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-msis",
+        "--example",
+        "nrlmsis21_explicit_input"
       ],
-      "options": {"cwd": "${workspaceFolder}"},
-      "problemMatcher": ["$rustc"]
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
     },
     {
       "label": "geospace: build IRI-2020",
       "type": "process",
       "command": "nix",
       "args": [
-        "develop", ".#default", "--command", "env", "IONORAY_OFFLINE=1",
-        "cargo", "build", "--locked", "--offline", "--package", "ionoray-iri",
-        "--example", "iri2020_explicit_input"
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-iri",
+        "--example",
+        "iri2020_explicit_input"
       ],
-      "options": {"cwd": "${workspaceFolder}"},
-      "problemMatcher": ["$rustc"]
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
     },
     {
       "label": "geospace: build HWM14",
       "type": "process",
       "command": "nix",
       "args": [
-        "develop", ".#default", "--command", "env", "IONORAY_OFFLINE=1",
-        "cargo", "build", "--locked", "--offline", "--package", "ionoray-hwm",
-        "--example", "hwm14_explicit_input"
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-hwm",
+        "--example",
+        "hwm14_explicit_input"
       ],
-      "options": {"cwd": "${workspaceFolder}"},
-      "problemMatcher": ["$rustc"]
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
     },
     {
       "label": "geospace: build IGRF-14",
       "type": "process",
       "command": "nix",
       "args": [
-        "develop", ".#default", "--command", "env", "IONORAY_OFFLINE=1",
-        "cargo", "build", "--locked", "--offline", "--package", "ionoray-igrf",
-        "--example", "igrf14_evaluate"
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-igrf",
+        "--example",
+        "igrf14_evaluate"
       ],
-      "options": {"cwd": "${workspaceFolder}"},
-      "problemMatcher": ["$rustc"]
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
     },
     {
       "label": "geospace: build indices CLI",
@@ -157,7 +225,10 @@
         "cli_records"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
       },
       "problemMatcher": [
         "$rustc"
@@ -172,10 +243,15 @@
         ".#default",
         "--command",
         "python3",
-        "scripts/prepare_python_debug.py"
+        "scripts/prepare_python_debug.py",
+        "--features",
+        "standard"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
       },
       "problemMatcher": [
         "$rustc"
@@ -213,7 +289,10 @@
         "driver_scenarios"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
       },
       "problemMatcher": [
         "$rustc"
@@ -242,7 +321,10 @@
         "automatic_drivers"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
       },
       "problemMatcher": [
         "$rustc"
@@ -271,7 +353,10 @@
         "direct_models"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
       },
       "problemMatcher": [
         "$rustc"
@@ -280,20 +365,38 @@
     {
       "label": "cargo: check workspace",
       "type": "shell",
-      "command": "nix develop .#default --command cargo check --workspace --all-targets --all-features",
+      "command": "nix develop .#default --command env IONORAY_OFFLINE=1 cargo check --locked --offline --workspace --all-targets --all-features",
       "problemMatcher": [
         "$rustc"
       ],
-      "group": "build"
+      "group": "build",
+      "options": {
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
+      }
     },
     {
       "label": "cargo: test workspace",
       "type": "shell",
-      "command": "nix develop .#default --command cargo test --workspace --all-features",
+      "command": "nix develop .#default --command env IONORAY_OFFLINE=1 cargo test --locked --offline --workspace --exclude ionoray-python --all-features",
       "problemMatcher": [
         "$rustc"
       ],
-      "group": "test"
+      "group": "test",
+      "options": {
+        "env": {
+          "IONORAY_CACHE_ROOT": "${input:modelCacheRoot}"
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "modelCacheRoot",
+      "type": "promptString",
+      "default": "",
+      "description": "Absolute approved cache root for model builds; leave empty for cache-snapshots local files or explicit SOURCE_DIR inputs."
     }
   ]
 }

@@ -3,7 +3,7 @@
 ## Dependency layers
 
 ```text
-ionoray-python -- ionoray-geospace (standard)
+ionoray-python -- ionoray-geospace (indices + explicit optional model features)
     `-- ionoray-observability
 ionoray-geospace
     |-- ionoray-indices -- ionoray-store -- ionoray-core
@@ -146,7 +146,7 @@ init -> query -> download -> validate -> import -> verify -> read
 - `download_year` maintains raw CAS files without importing values.
 - `sync_year` checks upstream, downloads changes, validates, and imports.
 - GFZ and IRI rolling-source failures fall back to a SHA-256-pinned snapshot
-  packaged with `ionoray-indices`; offline policy starts from accepted local CAS
+  optionally embedded at build time from `IONORAY_CACHE_ROOT` or local snapshot paths; offline policy starts from accepted local CAS
   bodies and uses the packaged snapshot as a fallback without HTTP requests.
 - `ensure_year` never checks upstream when complete local coverage exists.
 - `sync_range` is the model-driver preparation boundary: it requests only the
@@ -169,8 +169,10 @@ assembly-layer model preparation use this boundary. See the
 [data maintenance guide](data-maintenance.md) for commands and validation boundaries.
 
 Build and runtime offline controls remain separate: Cargo `--offline` controls
-dependency resolution, while `IONORAY_OFFLINE=1` selects packaged model build
-assets. Runtime HTTP access follows `DataPolicy`, range `SyncMode`, or annual
+dependency resolution, while `IONORAY_OFFLINE=1` requires verified existing build assets.
+`IONORAY_CACHE_ROOT` supplies a build-time asset root with the shared manifest
+layout; IGRF also accepts `IONORAY_IGRF14_COEFFICIENT_FILE`. No runtime model
+loads from this root or the network. Runtime HTTP access follows `DataPolicy`, range `SyncMode`, or annual
 `SyncPolicy`; the latter supports `AlwaysCheck`, `ForceDownload`, and `Offline`.
 
 ## Tracing contract

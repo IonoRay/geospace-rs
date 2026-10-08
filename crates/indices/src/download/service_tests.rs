@@ -10,6 +10,14 @@ async fn remote_failure_falls_back_to_valid_bundled_source() {
     let temporary = TempDir::new().unwrap();
     let store = ionoray_store::Store::open_root(Some(temporary.path())).unwrap();
     let source = rolling_source("test.gfz.fallback.2020");
+    if source.cache.is_none() {
+        assert!(
+            download_file(&store, source, CheckMode::Metadata)
+                .await
+                .is_err()
+        );
+        return;
+    }
     let files = download_file(&store, source, CheckMode::Metadata)
         .await
         .unwrap()
@@ -56,7 +64,10 @@ async fn failed_month_does_not_stop_later_interval_source() {
             .iter()
             .any(|failure| failure.month.is_none())
     );
-    assert_eq!(report.files.len(), 1);
+    assert_eq!(
+        report.files.len(),
+        usize::from(cache::for_dataset(crate::IndexDataset::KpApF107, 2020).is_some())
+    );
 }
 
 fn rolling_source(source_id: &str) -> SourceFile {

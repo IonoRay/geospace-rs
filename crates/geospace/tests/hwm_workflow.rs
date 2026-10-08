@@ -43,8 +43,8 @@ async fn quiet_and_explicit_ap_skip_all_queries_under_every_policy() {
                 .unwrap();
             assert_eq!(evaluated.input.geomagnetic_activity, activity);
             assert!(evaluated.ap_index.is_none());
-            assert!(calls.reads().is_empty());
-            assert!(calls.preparations().is_empty());
+            assert_eq!(calls.reads().len(), 0);
+            assert_eq!(calls.preparations().len(), 0);
         }
     }
     assert_eq!(
@@ -79,7 +79,7 @@ async fn automatic_ap_uses_half_open_three_hour_bins_and_keeps_source() {
         );
         assert_eq!(sample.value.value(), expected_ap);
         assert_eq!(sample.quality, QualityFlag::Provisional);
-        assert!(!sample.release_id.is_empty());
+        assert_ne!(sample.release_id.len(), 0);
         assert_eq!(
             sample.artifact.to_hex(),
             "a74cd1096e7b7711690ffba819ddf7149bf32f07a787092510407e5aa1742029"

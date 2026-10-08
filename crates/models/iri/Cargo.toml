@@ -5,7 +5,7 @@ exclude = ["cache/*.tgz", "cache/*.tar", "cache/*.gz", "cache/*.txt", "cache/*.d
 description = "Independent IRI ionosphere model family for IonoRay"
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+license-file = "LICENSE"
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
@@ -15,6 +15,7 @@ default = ["iri2020"]
 iri2020 = []
 
 [dependencies]
+tempfile.workspace = true
 ionoray-core.workspace = true
 serde.workspace = true
 sha2.workspace = true

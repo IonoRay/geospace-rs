@@ -8,8 +8,9 @@ The default `iri2020` feature pins the official 25 September 2025 IRI-2020
 snapshot. Cargo verifies the release archive and every consumed source,
 coefficient, and IGRF file by SHA-256, generates a small explicit-path
 `ISO_C_BINDING` adapter, and compiles a local static Fortran library in
-`OUT_DIR`. The verbatim pinned archive is included in Git and the packaged
-crate sources as the deterministic build fallback under `IRI-LICENSE.txt`.
+`OUT_DIR`. The pinned archive is optional: cache-snapshots retains it locally;
+main and source packages exclude it. Supply verified explicit sources/cache or
+permit fixed build-time acquisition. `IRI-LICENSE.txt` accompanies the crate.
 
 ```bash
 nix develop .#default --command cargo build -p ionoray-iri
@@ -34,8 +35,12 @@ Resolution order is:
 
 1. `IONORAY_IRI2020_SOURCE_DIR`;
 2. a complete verified source already present in Cargo `OUT_DIR`;
-3. when online, the fixed [official IRI-2020 archive](https://irimodel.org/IRI-2020/);
-4. the packaged verified archive when offline or remote acquisition fails.
+3. a verified archive from `IONORAY_CACHE_ROOT` or the local optional cache;
+4. when permitted and no verified source remains, the fixed [official IRI-2020 archive](https://irimodel.org/IRI-2020/).
+
+An existing selected cache must pass its hash check even when OUT_DIR is reusable.
+A fresh offline build without a verified source fails explicitly; see
+[build sources](../../../docs/releases.md#build-time-sources).
 
 `IONORAY_IRI2020_OFFLINE=1` remains available when only this backend should be
 forced offline; `IONORAY_OFFLINE=1` applies to every integrated model build.
@@ -65,7 +70,7 @@ NeQuick would require both switches 29 and 30 to be false. The switch table and
 Replay the single-point numerical reference independently of the Rust adapter:
 
 ```bash
-nix develop .#default --command python3 scripts/verify_iri2020_reference.py
+nix develop .#default --command python3 scripts/verify_iri2020_reference.py --archive /absolute/cache-root/crates/models/iri/cache/iri2020.tar
 ```
 
 This compiles unmodified, SHA-256-verified upstream sources in a temporary

@@ -1,19 +1,29 @@
 //! Direct synchronous model calls. No runtime or index home is opened.
+#[cfg(feature = "hwm")]
+use crate::request::HWM;
+#[cfg(feature = "iri")]
+use crate::request::IRI;
+#[cfg(feature = "msis")]
+use crate::request::MSIS;
+use crate::tracing::PyTracingGuard;
+#[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]
 use crate::{
     convert::output,
     error::translate,
-    request::{Arguments, HWM, IRI, MSIS, POINT},
-    tracing::PyTracingGuard,
+    request::{Arguments, POINT},
 };
-use ionoray_geospace::{
-    hwm::{Hwm, HwmInput, HwmVersion},
-    igrf::{Igrf, IgrfInput, IgrfVersion},
-    iri::{Iri, IriDrivers, IriInput, IriVersion},
-    msis::{Msis, MsisDrivers, MsisInput, MsisVersion},
-};
+#[cfg(feature = "hwm")]
+use ionoray_geospace::hwm::{Hwm, HwmInput, HwmVersion};
+#[cfg(feature = "igrf")]
+use ionoray_geospace::igrf::{Igrf, IgrfInput, IgrfVersion};
+#[cfg(feature = "iri")]
+use ionoray_geospace::iri::{Iri, IriDrivers, IriInput, IriVersion};
+#[cfg(feature = "msis")]
+use ionoray_geospace::msis::{Msis, MsisDrivers, MsisInput, MsisVersion};
 use pyo3::{prelude::*, types::PyDict};
 
 /// IGRF-14 at an explicit UTC/WGS84 point; returns magnetic field in SI.
+#[cfg(feature = "igrf")]
 #[pyfunction]
 #[pyo3(signature = (**kwargs), text_signature = "(*, at, latitude_deg, longitude_deg, altitude_km)")]
 pub(crate) fn igrf(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyAny>> {
@@ -25,6 +35,7 @@ pub(crate) fn igrf(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResu
     output(py, &result)
 }
 /// IRI-2020 with four explicit empirical drivers (F10.7 in sfu).
+#[cfg(feature = "iri")]
 #[pyfunction]
 #[pyo3(signature = (**kwargs), text_signature = "(*, at, latitude_deg, longitude_deg, altitude_km, rz12, ig12, f107_daily, f107_81_day)")]
 pub(crate) fn iri(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyAny>> {
@@ -44,6 +55,7 @@ pub(crate) fn iri(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResul
     output(py, &result)
 }
 /// HWM14 quiet winds or disturbed winds with explicit current ap.
+#[cfg(feature = "hwm")]
 #[pyfunction]
 #[pyo3(signature = (**kwargs), text_signature = "(*, at, latitude_deg, longitude_deg, altitude_km, activity, current_ap=None)")]
 pub(crate) fn hwm(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyAny>> {
@@ -58,6 +70,7 @@ pub(crate) fn hwm(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResul
     output(py, &result)
 }
 /// NRLMSIS 2.1 with explicit flux and Daily or complete `StormTime` activity.
+#[cfg(feature = "msis")]
 #[pyfunction]
 #[pyo3(signature = (**kwargs), text_signature = "(*, at, latitude_deg, longitude_deg, altitude_km, f107a, f107_previous_day, ap_daily=None, ap_history=None)")]
 pub(crate) fn msis(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyAny>> {
@@ -79,10 +92,75 @@ pub(crate) fn msis(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResu
 /// Lists this extension's supported public model capabilities.
 #[pyfunction]
 pub(crate) fn capabilities() -> Vec<&'static str> {
-    vec!["igrf", "iri", "hwm", "msis", "indices"]
+    // Another workspace member can enable backend features through Cargo's
+    // feature unification. Report only wrappers compiled into this extension.
+    let wrappers = &[
+        "indices",
+        #[cfg(feature = "igrf")]
+        "igrf",
+        #[cfg(feature = "iri")]
+        "iri",
+        #[cfg(feature = "hwm")]
+        "hwm",
+        #[cfg(feature = "msis")]
+        "msis",
+    ];
+    ionoray_geospace::capabilities()
+        .iter()
+        .copied()
+        .filter(|name| wrappers.contains(name))
+        .collect()
 }
 /// Installs process-wide tracing and returns its explicit lifecycle guard.
 #[pyfunction]
 pub(crate) fn init_tracing() -> PyResult<PyTracingGuard> {
     PyTracingGuard::new().map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
+}
+
+#[cfg(not(feature = "igrf"))]
+#[pyfunction]
+#[pyo3(signature = (**kwargs))]
+pub(crate) fn igrf(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyAny>> {
+    let _ = kwargs;
+    Err(crate::error::failure(
+        py,
+        "model_unavailable",
+        "igrf was not compiled; enable the igrf or standard feature",
+    ))
+}
+
+#[cfg(not(feature = "iri"))]
+#[pyfunction]
+#[pyo3(signature = (**kwargs))]
+pub(crate) fn iri(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyAny>> {
+    let _ = kwargs;
+    Err(crate::error::failure(
+        py,
+        "model_unavailable",
+        "iri was not compiled; enable the iri or standard feature",
+    ))
+}
+
+#[cfg(not(feature = "hwm"))]
+#[pyfunction]
+#[pyo3(signature = (**kwargs))]
+pub(crate) fn hwm(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyAny>> {
+    let _ = kwargs;
+    Err(crate::error::failure(
+        py,
+        "model_unavailable",
+        "hwm was not compiled; enable the hwm or standard feature",
+    ))
+}
+
+#[cfg(not(feature = "msis"))]
+#[pyfunction]
+#[pyo3(signature = (**kwargs))]
+pub(crate) fn msis(py: Python<'_>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyAny>> {
+    let _ = kwargs;
+    Err(crate::error::failure(
+        py,
+        "model_unavailable",
+        "msis was not compiled; enable the msis or standard feature",
+    ))
 }

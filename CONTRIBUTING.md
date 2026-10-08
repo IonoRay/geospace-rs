@@ -4,7 +4,12 @@ Use the repository-root `flake.nix` development environment. The lockfiles
 define the current toolchain and dependencies; do not update them as a side
 effect of an unrelated change. On a fresh checkout, first populate the Nix
 environment and Cargo cache with a normal `--locked` build. The commands below
-use cached dependencies and packaged model build assets.
+use cached dependencies and verified build assets. On main, set
+`IONORAY_CACHE_ROOT=/absolute/approved-cache-root` for the full matrix, or
+provide each documented source path. `cache-snapshots` carries those assets.
+Without model assets, run `cargo test -p ionoray-core -p ionoray-python` and
+`cargo check -p ionoray-geospace` for the default base; a clean full-model
+offline build must fail with a missing-source error.
 
 Read [architecture](docs/architecture.md) and [third-party notices](THIRD_PARTY_NOTICES.md)
 before changing model backends or redistributing artifacts. Model crates take
@@ -20,7 +25,7 @@ nix develop .#default --command env IONORAY_OFFLINE=1 \
 nix develop .#default --command env IONORAY_OFFLINE=1 \
   cargo test --locked --offline --workspace --exclude ionoray-python --all-features
 nix develop .#default --command env IONORAY_OFFLINE=1 \
-  cargo test --locked --offline -p ionoray-python
+  cargo test --locked --offline -p ionoray-python --features standard
 nix develop .#default --command env IONORAY_OFFLINE=1 RUSTDOCFLAGS=-Dwarnings \
   cargo doc --locked --offline --workspace --all-features --no-deps
 git diff --check

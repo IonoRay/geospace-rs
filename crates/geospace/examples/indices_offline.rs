@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     assert_eq!(missing.status, RangeSyncStatus::Partial);
     assert_eq!(missing.download_summary.sources_queried, 0);
-    assert!(!missing.gaps.is_empty());
+    assert_ne!(missing.gaps.len(), 0);
     assert!(
         missing
             .gaps

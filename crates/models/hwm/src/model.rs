@@ -285,7 +285,8 @@ mod tests {
         let model = Hwm::new(HwmVersion::Hwm14);
         let mut latitude_profile = false;
         let mut count = 0;
-        for line in include_str!(concat!(env!("OUT_DIR"), "/hwm14/reference-profiles.txt")).lines() {
+        for line in include_str!(concat!(env!("OUT_DIR"), "/hwm14/reference-profiles.txt")).lines()
+        {
             if line.trim() == "latitude profile" {
                 latitude_profile = true;
             }

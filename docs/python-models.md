@@ -1,3 +1,11 @@
+> Python default: indices/Session, no model backend. Direct uncompiled model calls
+> return `GeospaceError(code="model_unavailable")`; Prepared classes and Session
+> model methods are exported only for enabled features. `capabilities()` reports
+> the compiled set. Select `--features extension-module,igrf` or
+> `--features extension-module,standard` with maturin. Debug preparation accepts
+> `--features standard`. Full models require approved local build assets or
+> explicit permission for build-time acquisition; see [releases](releases.md).
+
 # Python 模型、Session 与 Prepared
 
 Python 包名是 `ionoray_geospace`。绑定直接复用 Rust 模型和 `prepare_*`，不复制
@@ -14,7 +22,7 @@ Python 包名是 `ionoray_geospace`。绑定直接复用 Rust 模型和 `prepare
 nix develop .#default --command env IONORAY_OFFLINE=1 \
   cargo build --locked --offline -p ionoray-geospace \
   --no-default-features --features standard --example driver_scenarios
-nix develop .#default --command python3 scripts/prepare_python_debug.py
+nix develop .#default --command python3 scripts/prepare_python_debug.py --features standard
 nix develop .#default --command env IONORAY_OFFLINE=1 \
   .venv/bin/python -m unittest -v \
   python.tests.test_models python.tests.test_session python.tests.test_scenarios \

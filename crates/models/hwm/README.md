@@ -7,15 +7,16 @@ Independent Rust API for the NRL Horizontal Wind Model.
 The default `hwm14` feature acquires the official HWM14.123114 supplemental
 release at Cargo build time, verifies the archive and every consumed source/data
 file by SHA-256, generates a small explicit-path `ISO_C_BINDING` adapter, and
-compiles a local static Fortran library in `OUT_DIR`. The verbatim pinned archive
-is included in Git and the packaged crate sources as the deterministic build fallback.
+compiles a local static Fortran library in `OUT_DIR`. The pinned archive is optional:
+cache-snapshots retains it locally; main and source packages exclude it. Supply
+verified explicit sources/cache or permit fixed build-time acquisition.
 
 ```bash
 nix develop .#default --command cargo build -p ionoray-hwm
 ```
 
-For an already downloaded and extracted official release, provide its flat
-`HWM14/` directory (the directory containing `hwm14.f90`):
+For an already downloaded and extracted official release, provide its official
+`HWM14/` directory, including `hwm14.f90` and `Check/gfortran.txt`:
 
 ```bash
 IONORAY_HWM14_SOURCE_DIR=/path/to/HWM14 \
@@ -33,8 +34,12 @@ Resolution order is:
 
 1. `IONORAY_HWM14_SOURCE_DIR`;
 2. a complete verified source already present in Cargo `OUT_DIR`;
-3. when online, the fixed [official NRL supplemental archive](https://map.nrl.navy.mil/map/pub/nrl/HWM/HWM14/);
-4. the packaged verified archive when offline or remote acquisition fails.
+3. a verified archive from `IONORAY_CACHE_ROOT` or the local optional cache;
+4. when permitted and no verified source remains, the fixed [official NRL supplemental archive](https://map.nrl.navy.mil/map/pub/nrl/HWM/HWM14/).
+
+An existing selected cache must pass its hash check even when OUT_DIR is reusable.
+A fresh offline build without a verified source fails explicitly; see
+[build sources](../../../docs/releases.md#build-time-sources).
 
 `IONORAY_HWM14_OFFLINE=1` remains available when only this backend should be
 forced offline; `IONORAY_OFFLINE=1` applies to every integrated model build.
@@ -42,8 +47,9 @@ forced offline; `IONORAY_OFFLINE=1` applies to every integrated model build.
 ## Data and initialization
 
 HWM14 requires `hwm123114.bin`, `dwm07b104i.dat`, and `gd2qd.dat`. The verified
-files are embedded in the Rust artifact, then materialized atomically into a
-content-addressed directory under the platform temporary directory. The
+files are embedded in the Rust artifact, then verified and materialized into a
+random temporary directory with a readable hash prefix. A process-level TempDir
+guard retains that directory while Fortran uses it. The
 generated adapter passes that directory explicitly to the Fortran backend; it
 does not mutate the process-wide `HWMPATH` environment variable.
 

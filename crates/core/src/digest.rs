@@ -54,8 +54,14 @@ impl FromStr for Sha256Digest {
         let mut bytes = [0_u8; SHA256_BYTES];
         for (index, byte) in bytes.iter_mut().enumerate() {
             let offset = index * 2;
-            *byte = u8::from_str_radix(&hex[offset..offset + 2], 16)
-                .map_err(|_| DigestError::InvalidHex(offset))?;
+            let pair = &hex.as_bytes()[offset..offset + 2];
+            let nibble = |value| match value {
+                b'0'..=b'9' => Ok(value - b'0'),
+                b'a'..=b'f' => Ok(value - b'a' + 10),
+                b'A'..=b'F' => Ok(value - b'A' + 10),
+                _ => Err(DigestError::InvalidHex(offset)),
+            };
+            *byte = (nibble(pair[0])? << 4) | nibble(pair[1])?;
         }
         Ok(Self(bytes))
     }
@@ -116,5 +122,24 @@ mod tests {
         let json = serde_json::to_string(&digest).unwrap();
         assert_eq!(json, format!("\"{digest}\""));
         assert_eq!(serde_json::from_str::<Sha256Digest>(&json).unwrap(), digest);
+    }
+}
+
+#[cfg(test)]
+mod hostile_input_tests {
+    use super::*;
+    #[test]
+    fn non_ascii_and_invalid_hex_return_errors_without_panicking() {
+        for value in ["汉".repeat(21) + "a", "g".repeat(64), "a".repeat(63)] {
+            assert!(value.parse::<Sha256Digest>().is_err());
+            assert!(
+                serde_json::from_str::<Sha256Digest>(&serde_json::to_string(&value).unwrap())
+                    .is_err()
+            );
+        }
+        assert_eq!(
+            "AB".repeat(32).parse::<Sha256Digest>(),
+            Ok(Sha256Digest::from_bytes([0xab; 32]))
+        );
     }
 }

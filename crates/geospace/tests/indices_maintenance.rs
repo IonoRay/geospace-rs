@@ -189,7 +189,7 @@ async fn schedule_preserves_order_and_offline_partial_reports() {
     };
     assert_eq!(iri.status, RangeSyncStatus::Complete);
     assert_eq!(iri.download_summary.sources_queried, 0);
-    assert!(!dst.gaps.is_empty());
+    assert_ne!(dst.gaps.len(), 0);
     assert!(outcomes.iter().all(|outcome| outcome.error.is_none()));
 
     // Verbatim GFZ snapshot, line 32365: the 12:00-15:00 UTC ap slot is 2.
@@ -202,7 +202,7 @@ async fn schedule_preserves_order_and_offline_partial_reports() {
     // this checks preserved metadata, not an independent source-quality audit.
     assert_eq!(ap.quality, ionoray_indices::QualityFlag::Provisional);
     assert_eq!(ap.derivation, ionoray_indices::ValueDerivation::Source);
-    assert!(!ap.release_id.is_empty());
+    assert_ne!(ap.release_id.len(), 0);
     assert_eq!(
         ap.artifact.to_hex(),
         "a74cd1096e7b7711690ffba819ddf7149bf32f07a787092510407e5aa1742029"

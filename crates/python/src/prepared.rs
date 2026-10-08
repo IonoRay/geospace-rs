@@ -1,15 +1,13 @@
 //! Python Prepared objects own Rust inputs/evidence, never a Session.
-use crate::{
-    convert::output,
-    error::translate,
-    request::{Arguments, HWM, IRI, MSIS},
-};
-use ionoray_geospace::{PreparedHwm, PreparedIri, PreparedMsis};
+use crate::{convert::output, error::translate, request::Arguments};
+
 use pyo3::{prelude::*, types::PyDict};
 
 /// Independent, immutable copy of a resolved Iri input and evidence.
+#[cfg(feature = "iri")]
 #[pyclass(name = "PreparedIri", module = "ionoray_geospace", frozen)]
 pub(crate) struct PyPreparedIri(pub(crate) PreparedIri);
+#[cfg(feature = "iri")]
 #[pymethods]
 impl PyPreparedIri {
     #[getter]
@@ -36,8 +34,10 @@ impl PyPreparedIri {
 }
 
 /// Independent, immutable copy of a resolved Hwm input and evidence.
+#[cfg(feature = "hwm")]
 #[pyclass(name = "PreparedHwm", module = "ionoray_geospace", frozen)]
 pub(crate) struct PyPreparedHwm(pub(crate) PreparedHwm);
+#[cfg(feature = "hwm")]
 #[pymethods]
 impl PyPreparedHwm {
     #[getter]
@@ -67,8 +67,10 @@ impl PyPreparedHwm {
 }
 
 /// Independent, immutable copy of a resolved Msis input and evidence.
+#[cfg(feature = "msis")]
 #[pyclass(name = "PreparedMsis", module = "ionoray_geospace", frozen)]
 pub(crate) struct PyPreparedMsis(pub(crate) PreparedMsis);
+#[cfg(feature = "msis")]
 #[pymethods]
 impl PyPreparedMsis {
     #[getter]
@@ -93,3 +95,18 @@ impl PyPreparedMsis {
         Ok(Self(self.0.with_overrides(a.msis(false)?)))
     }
 }
+
+#[cfg(feature = "iri")]
+use crate::request::IRI;
+#[cfg(feature = "iri")]
+use ionoray_geospace::PreparedIri;
+
+#[cfg(feature = "hwm")]
+use crate::request::HWM;
+#[cfg(feature = "hwm")]
+use ionoray_geospace::PreparedHwm;
+
+#[cfg(feature = "msis")]
+use crate::request::MSIS;
+#[cfg(feature = "msis")]
+use ionoray_geospace::PreparedMsis;

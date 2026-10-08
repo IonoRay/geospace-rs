@@ -1,9 +1,10 @@
 # Bundled index snapshot
 
-These verbatim upstream files are the deterministic fallback for the rolling
-indices required by the currently integrated models. Online synchronization
-still takes precedence. `SyncPolicy::Offline` imports only this snapshot and
-existing local CAS objects, without creating an HTTP request.
+These optional verbatim snapshots are retained on cache-snapshots; main and
+source packages exclude their bytes. An explicit IONORAY_CACHE_ROOT can supply
+them at build time. Requested online source checks take precedence; Ensure can
+reuse complete local coverage. Offline uses existing CAS/embedded snapshots and
+reports gaps when insufficient, without creating an HTTP request.
 
 Snapshot: 2026-07-16
 

@@ -3,6 +3,7 @@ use super::Session;
 use pyo3::{prelude::*, types::PyDict};
 
 #[test]
+#[cfg(feature = "hwm")]
 fn repeated_calls_keep_one_store_and_runtime() {
     Python::attach(|py| {
         let home = std::env::temp_dir().join(format!("geospace-s4-session-{}", std::process::id()));

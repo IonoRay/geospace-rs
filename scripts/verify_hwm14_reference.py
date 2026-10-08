@@ -4,6 +4,7 @@ Only the height and latitude profiles are checked (36 points, Quiet/total).
 The committed expectations come from upstream Check/gfortran.txt, not this run.
 """
 
+import argparse
 import hashlib
 from pathlib import Path
 import subprocess
@@ -34,7 +35,12 @@ def rows(text):
 
 
 def main():
-    archive = ROOT / "cache/hwm14.tgz"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--archive", type=Path, help="local pinned official archive")
+    args = parser.parse_args()
+    archive = args.archive or ROOT / "cache/hwm14.tgz"
+    if not archive.is_file():
+        raise SystemExit(f"Missing {archive}; provide --archive with the fixed official release (docs/releases.md)")
     if hashlib.sha256(archive.read_bytes()).hexdigest() != ARCHIVE_SHA256:
         raise SystemExit("official archive SHA-256 mismatch")
     with tempfile.TemporaryDirectory(prefix="hwm14-reference-") as directory:

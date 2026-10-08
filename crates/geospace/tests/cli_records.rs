@@ -137,7 +137,7 @@ fn single_file_keeps_json_stdout_separate_from_traces() {
     let row: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(row["id"], "fixture");
     assert_eq!(row["line"], 1);
-    assert!(!output.stderr.is_empty());
+    assert_ne!(output.stderr.len(), 0);
     for line in String::from_utf8(output.stderr).unwrap().lines() {
         let event: Value = serde_json::from_str(line).unwrap();
         assert!(event.is_object());

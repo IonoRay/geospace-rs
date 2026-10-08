@@ -1,5 +1,6 @@
 pub(crate) mod cache;
 mod cache_manifest;
+mod license;
 mod model;
 mod service;
 mod source;

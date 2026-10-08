@@ -162,8 +162,8 @@ mod tests {
         }
         .with_subscriber(repeated.clone())
         .await;
-        assert!(repeated.reads().is_empty());
-        assert!(repeated.preparations().is_empty());
+        assert_eq!(repeated.reads().len(), 0);
+        assert_eq!(repeated.preparations().len(), 0);
         assert!(!home.path().join("indices/wdc-kyoto").exists());
         let igrf = igrf::Igrf::new(igrf::IgrfVersion::Igrf14).unwrap();
         assert!(igrf.evaluate(&igrf::IgrfInput { query }).is_ok());
@@ -208,8 +208,8 @@ mod tests {
             }
             .with_subscriber(calls.clone())
             .await;
-            assert!(calls.reads().is_empty());
-            assert!(calls.preparations().is_empty());
+            assert_eq!(calls.reads().len(), 0);
+            assert_eq!(calls.preparations().len(), 0);
         }
         // Geospace still opens its root explicitly even when no drivers are missing.
         assert!(home.path().is_dir());

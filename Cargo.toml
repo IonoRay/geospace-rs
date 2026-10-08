@@ -54,7 +54,7 @@ url = { version = "2.5.8", features = ["serde"] }
 uuid = { version = "1.26.0", features = ["serde", "v7"] }
 
 ionoray-core = { version = "0.1.0", path = "crates/core" }
-ionoray-geospace = { version = "0.1.0", path = "crates/geospace" }
+ionoray-geospace = { version = "0.1.0", path = "crates/geospace", default-features = false }
 ionoray-observability = { version = "0.1.0", path = "crates/observability" }
 ionoray-store = { version = "0.1.0", path = "crates/store" }
 ionoray-indices = { version = "0.1.0", path = "crates/indices" }
