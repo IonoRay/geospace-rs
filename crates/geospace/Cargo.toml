@@ -1,0 +1,85 @@
+[package]
+name = "ionoray-geospace"
+version = "0.1.0"
+description = "Integrated geospace data and model planning, with the geospace CLI"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[lib]
+name = "ionoray_geospace"
+path = "src/lib.rs"
+
+[[bin]]
+name = "geospace"
+path = "src/bin/geospace.rs"
+required-features = ["cli"]
+
+[[example]]
+name = "direct_models"
+required-features = ["igrf", "iri", "hwm", "msis"]
+
+[[example]]
+name = "automatic_drivers"
+required-features = ["standard"]
+
+[[example]]
+name = "driver_scenarios"
+required-features = ["standard"]
+
+[[example]]
+name = "cli_records"
+required-features = ["cli-standard"]
+
+[[example]]
+name = "indices_offline"
+required-features = ["indices"]
+
+[[example]]
+name = "indices_maintenance"
+required-features = ["indices"]
+
+[features]
+default = []
+indices = ["dep:ionoray-indices", "dep:ionoray-store"]
+igrf = ["dep:ionoray-igrf"]
+iri = ["dep:ionoray-iri"]
+hwm = ["dep:ionoray-hwm"]
+msis = ["dep:ionoray-msis"]
+standard = ["indices", "igrf", "iri", "hwm", "msis"]
+cli = [
+    "dep:clap",
+    "dep:ionoray-observability",
+    "dep:ionoray-store",
+    "dep:serde_json",
+    "dep:tokio",
+]
+cli-standard = ["cli", "standard"]
+
+[dependencies]
+clap = { workspace = true, optional = true }
+ionoray-core.workspace = true
+ionoray-observability = { workspace = true, optional = true }
+ionoray-store = { workspace = true, optional = true }
+ionoray-indices = { workspace = true, optional = true }
+ionoray-igrf = { workspace = true, optional = true }
+ionoray-iri = { workspace = true, optional = true }
+ionoray-hwm = { workspace = true, optional = true }
+ionoray-msis = { workspace = true, optional = true }
+thiserror.workspace = true
+tokio = { workspace = true, optional = true }
+tracing.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, optional = true }
+
+[dev-dependencies]
+clap.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,10 @@
+# Preserve byte identities of pinned upstream material on every platform.
+crates/indices/cache/*.txt -text -diff
+crates/indices/cache/*.dat -text -diff
+crates/models/*/cache/*.tar binary
+crates/models/*/cache/*.tgz binary
+crates/models/*/cache/*.tar.gz binary
+crates/models/*/data/* -text
+crates/models/hwm/data/reference-profiles.txt -diff
+crates/models/iri/IRI-LICENSE.txt -text
+crates/models/msis/nrlmsis2.1_license.txt -text -diff

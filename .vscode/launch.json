@@ -1,0 +1,258 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Geospace Rust: NRLMSIS 2.1",
+      "type": "lldb",
+      "sourceLanguages": ["rust"],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/nrlmsis21_explicit_input",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build NRLMSIS 2.1",
+      "env": {"IONORAY_OFFLINE": "1", "RUST_BACKTRACE": "1"}
+    },
+    {
+      "name": "Geospace Rust: IRI-2020",
+      "type": "lldb",
+      "sourceLanguages": ["rust"],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/iri2020_explicit_input",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build IRI-2020",
+      "env": {"IONORAY_OFFLINE": "1", "RUST_BACKTRACE": "1"}
+    },
+    {
+      "name": "Geospace Rust: HWM14",
+      "type": "lldb",
+      "sourceLanguages": ["rust"],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/hwm14_explicit_input",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build HWM14",
+      "env": {"IONORAY_OFFLINE": "1", "RUST_BACKTRACE": "1"}
+    },
+    {
+      "name": "Geospace Rust: IGRF-14",
+      "type": "lldb",
+      "sourceLanguages": ["rust"],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/igrf14_evaluate",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build IGRF-14",
+      "env": {"IONORAY_OFFLINE": "1", "RUST_BACKTRACE": "1"}
+    },
+    {
+      "name": "Geospace Rust: direct models",
+      "type": "lldb",
+      "sourceLanguages": [
+        "rust"
+      ],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/direct_models",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build direct models",
+      "env": {
+        "IONORAY_OFFLINE": "1",
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    {
+      "name": "Geospace Rust: automatic drivers (offline)",
+      "type": "lldb",
+      "sourceLanguages": [
+        "rust"
+      ],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/automatic_drivers",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build automatic drivers",
+      "env": {
+        "IONORAY_OFFLINE": "1",
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    {
+      "name": "Geospace Rust: driver scenarios (offline)",
+      "type": "lldb",
+      "sourceLanguages": [
+        "rust"
+      ],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/driver_scenarios",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build driver scenarios",
+      "env": {
+        "IONORAY_OFFLINE": "1",
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    {
+      "name": "Geospace Python: driver scenarios (offline)",
+      "type": "debugpy",
+      "request": "launch",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "stopOnEntry": true,
+      "justMyCode": true,
+      "preLaunchTask": "geospace: build Python bindings",
+      "env": {
+        "IONORAY_OFFLINE": "1",
+        "IONORAY_HOME": "/tmp/geospace-debug-fallback"
+      },
+      "program": "${workspaceFolder}/examples/driver_scenarios.py"
+    },
+    {
+      "name": "Geospace CLI: record processing (offline)",
+      "type": "lldb",
+      "sourceLanguages": [
+        "rust"
+      ],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/cli_records",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build CLI records",
+      "env": {
+        "IONORAY_OFFLINE": "1",
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    {
+      "name": "Geospace Data: sync all indices for year (online)",
+      "type": "lldb",
+      "sourceLanguages": [
+        "rust"
+      ],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/geospace",
+      "args": [
+        "--home",
+        "${input:indicesHome}",
+        "indices",
+        "sync",
+        "--year",
+        "${input:indicesYear}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false,
+      "preLaunchTask": "geospace: build indices CLI",
+      "env": {
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    {
+      "name": "Geospace Data: inspect indices (offline)",
+      "type": "lldb",
+      "sourceLanguages": [
+        "rust"
+      ],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/indices_offline",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build indices offline",
+      "env": {
+        "IONORAY_OFFLINE": "1",
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    {
+      "name": "Geospace Data: maintenance schedule (online)",
+      "type": "lldb",
+      "sourceLanguages": [
+        "rust"
+      ],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/examples/indices_maintenance",
+      "args": [
+        "--home", "${input:indicesHome}",
+        "--start-year", "${input:indicesStartYear}",
+        "--end-year", "${input:indicesEndYear}",
+        "--policy", "always-check"
+      ],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build indices maintenance schedule",
+      "env": {
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    {
+      "name": "Geospace Python: model tests",
+      "type": "debugpy",
+      "request": "launch",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "stopOnEntry": true,
+      "justMyCode": true,
+      "preLaunchTask": "geospace: prepare Python tests",
+      "env": {
+        "IONORAY_OFFLINE": "1",
+        "IONORAY_HOME": "/tmp/geospace-debug-fallback"
+      },
+      "module": "unittest",
+      "args": [
+        "-v",
+        "python.tests.test_models",
+        "python.tests.test_session",
+        "python.tests.test_scenarios",
+        "python.tests.test_analysis"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "indicesYear",
+      "type": "promptString",
+      "default": "2025",
+      "description": "UTC year to synchronize online into the explicitly selected home"
+    },
+    {
+      "id": "indicesHome",
+      "type": "promptString",
+      "default": "~/.ionoray/geospace-rs",
+      "description": "Data home to WRITE (absolute path or ~/...); select your existing store; online sync allowed"
+    },
+    {
+      "id": "indicesStartYear",
+      "type": "promptString",
+      "default": "2025",
+      "description": "First UTC year to synchronize online (1958 or later, inclusive)"
+    },
+    {
+      "id": "indicesEndYear",
+      "type": "promptString",
+      "default": "2025",
+      "description": "Last UTC year to synchronize online (inclusive; same as first for one year)"
+    }
+  ]
+}

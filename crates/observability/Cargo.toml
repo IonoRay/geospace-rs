@@ -1,0 +1,26 @@
+[package]
+name = "ionoray-observability"
+version = "0.1.0"
+description = "Unified process tracing for IonoRay executable targets"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+libc = "0.2"
+serde_json.workspace = true
+tracing.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+sysinfo = "0.37.2"
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,23 @@
+[package]
+name = "ionoray-core"
+version = "0.1.0"
+description = "Shared domain types for IonoRay geospace data and models"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+hifitime.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+uom.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

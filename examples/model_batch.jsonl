@@ -1,0 +1,13 @@
+{"id":"direct.igrf","model":"igrf14","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300}
+{"id":"direct.iri","model":"iri2020","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300,"drivers":{"rz12":5.940666666666667,"ig12":-5.526666666666667,"f107_daily":71.2,"f107_81_day":72.1}}
+{"id":"direct.hwm","model":"hwm14","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300,"drivers":{"activity":"disturbed","current_ap":2}}
+{"id":"direct.msis","model":"nrlmsis21","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300,"drivers":{"f107a":69.9543209876543,"f107_previous_day":68.1,"ap_history":{"daily":4,"current":2,"three_hours_ago":4,"six_hours_ago":3,"nine_hours_ago":4,"average_12_to_33_hours":3.375,"average_36_to_57_hours":2.5}}}
+{"id":"auto.iri","model":"iri2020","mode":"auto","data_policy":"offline","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300}
+{"id":"auto.hwm","model":"hwm14","mode":"auto","data_policy":"offline","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300}
+{"id":"auto.msis","model":"nrlmsis21","mode":"auto","data_policy":"offline","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300}
+{"id":"bad.unknown","model":"igrf14","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300,"surprise":1}
+{"id":"bad.shape","model":"iri2020","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300,"drivers":[]}
+{"id":"bad.range","model":"igrf14","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":91,"longitude_deg":120,"altitude_km":300}
+{"id":"bad.drivers","model":"iri2020","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300,"drivers":{"rz12":5}}
+{"id":"bad.missing_data","model":"hwm14","mode":"auto","data_policy":"offline","at":"2030-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300}
+{"id":"after.failure","model":"igrf14","mode":"direct","at":"2020-07-01T12:00:00Z","latitude_deg":30,"longitude_deg":120,"altitude_km":300}

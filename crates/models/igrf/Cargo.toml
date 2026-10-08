@@ -1,0 +1,28 @@
+[package]
+name = "ionoray-igrf"
+version = "0.1.0"
+exclude = ["cache/*.tgz", "cache/*.tar", "cache/*.gz", "cache/*.txt", "cache/*.dat", "data/igrf14coeffs.txt", "data/reference-profiles.txt"]
+description = "Independent IGRF geomagnetic field model family for IonoRay"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+ionoray-core.workspace = true
+serde.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[build-dependencies]
+sha2.workspace = true
+
+[dev-dependencies]
+ionoray-observability.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

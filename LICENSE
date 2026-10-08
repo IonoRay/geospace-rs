@@ -1,0 +1,16 @@
+IonoRay Geospace licensing
+
+Original IonoRay code and project documentation are licensed, at your option,
+under either:
+
+  - the MIT License in LICENSE-MIT; or
+  - the Apache License, Version 2.0 in LICENSE-APACHE.
+
+This choice does not relicense third-party software, data, numerical reference
+extracts, or material derived from upstream software. Their original notices
+and terms continue to apply, including to artifacts that incorporate them.
+
+See THIRD_PARTY_NOTICES.md for the bundled material, upstream sources, required
+notices, restrictions, and unresolved redistribution questions. In particular,
+the complete model/data distribution must not be described as unrestricted
+MIT/Apache-2.0 software.

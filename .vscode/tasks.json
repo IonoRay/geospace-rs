@@ -1,0 +1,299 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "geospace: build NRLMSIS 2.1",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop", ".#default", "--command", "env", "IONORAY_OFFLINE=1",
+        "cargo", "build", "--locked", "--offline", "--package", "ionoray-msis",
+        "--example", "nrlmsis21_explicit_input"
+      ],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "geospace: build IRI-2020",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop", ".#default", "--command", "env", "IONORAY_OFFLINE=1",
+        "cargo", "build", "--locked", "--offline", "--package", "ionoray-iri",
+        "--example", "iri2020_explicit_input"
+      ],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "geospace: build HWM14",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop", ".#default", "--command", "env", "IONORAY_OFFLINE=1",
+        "cargo", "build", "--locked", "--offline", "--package", "ionoray-hwm",
+        "--example", "hwm14_explicit_input"
+      ],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "geospace: build IGRF-14",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop", ".#default", "--command", "env", "IONORAY_OFFLINE=1",
+        "cargo", "build", "--locked", "--offline", "--package", "ionoray-igrf",
+        "--example", "igrf14_evaluate"
+      ],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "geospace: build indices CLI",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop",
+        ".#default",
+        "--command",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-geospace",
+        "--no-default-features",
+        "--features",
+        "cli,indices",
+        "--bin",
+        "geospace"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "geospace: build indices maintenance schedule",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-geospace",
+        "--no-default-features",
+        "--features",
+        "indices",
+        "--example",
+        "indices_maintenance"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "geospace: build indices offline",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-geospace",
+        "--no-default-features",
+        "--features",
+        "indices",
+        "--example",
+        "indices_offline"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "geospace: build CLI records",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-geospace",
+        "--no-default-features",
+        "--features",
+        "cli-standard",
+        "--example",
+        "cli_records"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "geospace: build Python bindings",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop",
+        ".#default",
+        "--command",
+        "python3",
+        "scripts/prepare_python_debug.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "geospace: prepare Python tests",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "geospace: build Python bindings",
+        "geospace: build driver scenarios"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "geospace: build driver scenarios",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-geospace",
+        "--no-default-features",
+        "--features",
+        "standard",
+        "--example",
+        "driver_scenarios"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "geospace: build automatic drivers",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-geospace",
+        "--no-default-features",
+        "--features",
+        "standard",
+        "--example",
+        "automatic_drivers"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "geospace: build direct models",
+      "type": "process",
+      "command": "nix",
+      "args": [
+        "develop",
+        ".#default",
+        "--command",
+        "env",
+        "IONORAY_OFFLINE=1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--package",
+        "ionoray-geospace",
+        "--no-default-features",
+        "--features",
+        "igrf,iri,hwm,msis",
+        "--example",
+        "direct_models"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "cargo: check workspace",
+      "type": "shell",
+      "command": "nix develop .#default --command cargo check --workspace --all-targets --all-features",
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "cargo: test workspace",
+      "type": "shell",
+      "command": "nix develop .#default --command cargo test --workspace --all-features",
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "group": "test"
+    }
+  ]
+}

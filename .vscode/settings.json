@@ -1,0 +1,28 @@
+{
+  "nixEnvSelector.nixFile": "${workspaceFolder}/flake.nix",
+  "nixEnvSelector.useFlakes": true,
+  "nixEnvSelector.flakeShell": "default",
+  "rust-analyzer.cargo.features": "all",
+  "rust-analyzer.cargo.extraArgs": ["--locked", "--offline"],
+  "rust-analyzer.cargo.extraEnv": {"IONORAY_OFFLINE": "1"},
+  "rust-analyzer.runnables.extraArgs": ["--locked", "--offline"],
+  "rust-analyzer.runnables.extraEnv": {"IONORAY_OFFLINE": "1"},
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.allTargets": true,
+  "rust-analyzer.rustfmt.overrideCommand": [
+    "cargo",
+    "fmt",
+    "--",
+    "--emit=stdout"
+  ],
+  "terminal.integrated.env.osx": {
+    "RUST_BACKTRACE": "1"
+  },
+  "terminal.integrated.env.linux": {
+    "RUST_BACKTRACE": "1"
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  }
+}

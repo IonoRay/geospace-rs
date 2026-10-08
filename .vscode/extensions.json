@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "arrterian.nix-env-selector",
+    "jnoortheen.nix-ide",
+    "rust-lang.rust-analyzer",
+    "vadimcn.vscode-lldb",
+    "ms-python.python",
+    "ms-python.debugpy",
+    "tamasfe.even-better-toml"
+  ]
+}

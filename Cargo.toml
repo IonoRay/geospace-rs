@@ -1,0 +1,74 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/core",
+    "crates/observability",
+    "crates/store",
+    "crates/indices",
+    "crates/models/igrf",
+    "crates/models/iri",
+    "crates/models/hwm",
+    "crates/models/msis",
+    "crates/geospace",
+    "crates/python",
+]
+default-members = ["crates/geospace"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.89"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/IonoRay/geospace-rs"
+homepage = "https://github.com/IonoRay"
+authors = ["IonoRay contributors"]
+
+[workspace.dependencies]
+clap = { version = "4.6.6", features = ["derive"] }
+flate2 = "1.1.10"
+hifitime = { version = "=4.3.1", features = ["serde"] }
+httpdate = "1.0.3"
+nalgebra = { version = "0.35.0", features = ["serde-serialize"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+tar = "0.4.46"
+tempfile = "3.27.0"
+thiserror = "2.0.20"
+tracing = { version = "0.1.44", features = ["attributes"] }
+tracing-appender = "0.2.5"
+tracing-subscriber = { version = "0.3.23", features = ["chrono", "env-filter", "json"] }
+tokio = { version = "1.53.1", features = [
+    "fs",
+    "io-util",
+    "macros",
+    "net",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
+turso = "=0.7.2"
+uom = { version = "0.38.0", features = ["serde"] }
+ureq = { version = "3.4.1", default-features = false, features = ["rustls"] }
+url = { version = "2.5.8", features = ["serde"] }
+uuid = { version = "1.26.0", features = ["serde", "v7"] }
+
+ionoray-core = { version = "0.1.0", path = "crates/core" }
+ionoray-geospace = { version = "0.1.0", path = "crates/geospace" }
+ionoray-observability = { version = "0.1.0", path = "crates/observability" }
+ionoray-store = { version = "0.1.0", path = "crates/store" }
+ionoray-indices = { version = "0.1.0", path = "crates/indices" }
+ionoray-igrf = { version = "0.1.0", path = "crates/models/igrf" }
+ionoray-iri = { version = "0.1.0", path = "crates/models/iri" }
+ionoray-hwm = { version = "0.1.0", path = "crates/models/hwm" }
+ionoray-msis = { version = "0.1.0", path = "crates/models/msis" }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"

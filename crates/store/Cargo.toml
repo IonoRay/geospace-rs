@@ -1,0 +1,31 @@
+[package]
+name = "ionoray-store"
+version = "0.1.0"
+description = "Turso-native schema rebuilds and content-addressed data infrastructure for IonoRay"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+httpdate.workspace = true
+ionoray-core.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+turso.workspace = true
+url.workspace = true
+uuid.workspace = true
+dirs = "6"
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

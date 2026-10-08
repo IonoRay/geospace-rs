@@ -1,0 +1,34 @@
+[package]
+name = "ionoray-python"
+version = "0.1.0"
+description = "Thin Python bindings for IonoRay geospace models and driver sessions"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[lib]
+name = "_native"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+extension-module = ["pyo3/extension-module"]
+
+[dependencies]
+ionoray-indices.workspace = true
+ionoray-geospace = { workspace = true, features = ["standard"] }
+ionoray-observability.workspace = true
+pyo3 = { version = "0.27.2" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+pyo3 = { version = "0.27.2", features = ["auto-initialize"] }
