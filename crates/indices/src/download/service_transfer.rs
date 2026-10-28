@@ -46,7 +46,7 @@ pub(super) async fn download_file_unlocked_for_years(
     for candidate in &source.candidates {
         match download_candidate(scoped, &source, candidate, mode, target_years).await {
             Ok(candidate_files) => {
-                let complete = candidate_files.iter().any(complete_month);
+                let complete = candidate_files.iter().any(complete_period);
                 files.extend(candidate_files);
                 if complete {
                     break;
@@ -64,6 +64,9 @@ pub(super) async fn download_file_unlocked_for_years(
         }
     }
     if !files.is_empty() {
+        // A missing higher-maturity publication is a normal candidate fallback.
+        // Transport and validation failures remain strict even if data is usable.
+        failures.retain(|failure| failure.kind != super::IntervalFailureKind::RemoteUnavailable);
         files.sort_by_key(|file| std::cmp::Reverse(file.file.edition.priority()));
         return Ok(PreparedSourceDownload { files, failures });
     }
@@ -81,31 +84,28 @@ pub(super) async fn download_file_unlocked_for_years(
             failures,
         });
     }
-    if let Some(error) = remote_error {
-        return Err(error);
-    }
-    Err(IndexError::SourceUnavailable {
-        dataset: source.dataset,
-        year: source.year,
-        month: source.month.unwrap_or(0),
-    })
+    Ok(PreparedSourceDownload { files, failures })
 }
 
-pub(super) fn complete_month(file: &PreparedIndexFile) -> bool {
+pub(super) fn complete_period(file: &PreparedIndexFile) -> bool {
     let validated = &file.file;
     let Some(month) = validated.month else {
         return false;
     };
-    let days = match month {
-        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        4 | 6 | 9 | 11 => 30,
-        2 if validated.year.is_multiple_of(4)
-            && (!validated.year.is_multiple_of(100) || validated.year.is_multiple_of(400)) =>
-        {
-            29
+    let days = if validated.day.is_some() {
+        1
+    } else {
+        match month {
+            1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+            4 | 6 | 9 | 11 => 30,
+            2 if validated.year.is_multiple_of(4)
+                && (!validated.year.is_multiple_of(100) || validated.year.is_multiple_of(400)) =>
+            {
+                29
+            }
+            2 => 28,
+            _ => return false,
         }
-        2 => 28,
-        _ => return false,
     };
     let expected = days * 24;
     match &file.parsed {
@@ -131,6 +131,7 @@ async fn download_candidate(
         &download.artifact.path,
         source.year,
         source.month,
+        source.day,
     )
     .await?;
     let records = record_count(&parsed);
@@ -140,6 +141,7 @@ async fn download_candidate(
         dataset: source.dataset,
         year: source.year,
         month: source.month,
+        day: source.day,
         edition: candidate.edition,
         records,
         origin: IndexFileOrigin::Upstream,
@@ -178,7 +180,14 @@ async fn prepare_candidates(
         let parsed = if year == file.year {
             parsed.clone()
         } else {
-            parse_file(file.dataset, &file.download.artifact.path, year, file.month).await?
+            parse_file(
+                file.dataset,
+                &file.download.artifact.path,
+                year,
+                file.month,
+                file.day,
+            )
+            .await?
         };
         partition.records = record_count(&parsed);
         let path =
@@ -238,6 +247,7 @@ pub(super) async fn download_cached_for_years(
         &download.artifact.path,
         source.year,
         source.month,
+        source.day,
     )
     .await?;
     let records = record_count(&parsed);
@@ -247,6 +257,7 @@ pub(super) async fn download_cached_for_years(
         dataset: source.dataset,
         year: source.year,
         month: source.month,
+        day: source.day,
         edition: candidate.edition,
         records,
         origin: IndexFileOrigin::BundledCache,

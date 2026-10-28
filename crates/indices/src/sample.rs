@@ -17,6 +17,8 @@ pub enum QualityFlag {
     Final,
     /// Source identifies the value as provisional.
     Provisional,
+    /// Source is a real-time quicklook value, distinct from provisional data.
+    Realtime,
     /// The source documents the value as prediction-based.
     Predicted,
     /// No source quality flag was available.

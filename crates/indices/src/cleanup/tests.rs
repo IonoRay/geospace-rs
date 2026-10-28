@@ -14,6 +14,7 @@ fn file(digest: u8) -> ValidatedIndexFile {
         dataset: IndexDataset::Dst,
         year: 2020,
         month: Some(1),
+        day: None,
         edition: IndexEdition::Final,
         records: 1,
         origin: IndexFileOrigin::LocalCas,

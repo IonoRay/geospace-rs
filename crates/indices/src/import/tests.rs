@@ -19,6 +19,7 @@ fn file_for_source(
         dataset: crate::IndexDataset::Dst,
         year: 2020,
         month: Some(month),
+        day: None,
         edition,
         records: 1,
         origin: crate::IndexFileOrigin::LocalCas,

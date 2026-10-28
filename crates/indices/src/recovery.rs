@@ -56,6 +56,7 @@ pub(crate) async fn recover_interval(
                 attempts.extend(outcome.failures.iter().map(|failure| SourceAttempt {
                     year: failure.year,
                     month: failure.month,
+                    day: failure.day,
                     local_recovery: false,
                     gap_reason: Some(reason(failure.kind)),
                     source_id: failure.source_id.clone(),
@@ -64,7 +65,7 @@ pub(crate) async fn recover_interval(
                     artifact_sha256: None,
                     origin: None,
                     committed: false,
-                    outcome: failure.message.clone(),
+                    outcome: failure.diagnostic(),
                 }));
             }
             Err(error) => return Err(error),
@@ -92,6 +93,7 @@ fn success_attempt(file: &crate::ValidatedIndexFile) -> SourceAttempt {
     SourceAttempt {
         year: file.year,
         month: file.month,
+        day: file.day,
         local_recovery: file.origin == crate::IndexFileOrigin::LocalCas,
         gap_reason: None,
         source_id: Some(file.source_id.clone()),
@@ -121,7 +123,23 @@ fn requested_ranges(
     }
     let mut ranges = gaps
         .iter()
-        .map(|gap| month_range(gap.start_utc_ms))
+        .flat_map(|gap| {
+            let mut result = Vec::new();
+            let mut cursor = gap.start_utc_ms.max(start);
+            while cursor < gap.end_utc_ms.min(end) {
+                let (begin, finish) = if dataset == IndexDataset::Ae
+                    && crate::time::epoch_from_millis(cursor).to_gregorian_utc().0 >= 2021
+                {
+                    let begin = cursor.div_euclid(86_400_000) * 86_400_000;
+                    (begin, begin + 86_400_000)
+                } else {
+                    month_range(cursor)
+                };
+                result.push((begin.max(start), finish.min(end)));
+                cursor = finish;
+            }
+            result
+        })
         .collect::<Vec<_>>();
     ranges.sort_unstable();
     ranges.dedup();
@@ -155,6 +173,7 @@ fn attempt(
     SourceAttempt {
         year,
         month,
+        day: None,
         local_recovery,
         gap_reason,
         source_id: None,
@@ -175,5 +194,34 @@ fn reason(kind: crate::download::IntervalFailureKind) -> CoverageGapReason {
         crate::download::IntervalFailureKind::Network => CoverageGapReason::NetworkFailure,
         crate::download::IntervalFailureKind::Parse => CoverageGapReason::ParseFailure,
         crate::download::IntervalFailureKind::Unsupported => CoverageGapReason::Unsupported,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ae_ensure_visits_each_missing_day_within_requested_bounds() {
+        let start = crate::parse::epoch_ms(2024, 5, 1, 12).unwrap();
+        let end = crate::parse::epoch_ms(2024, 5, 3, 1).unwrap();
+        let gap = CoverageGap {
+            field: crate::IndexField::Ae,
+            start_utc_ms: start,
+            end_utc_ms: end,
+            reason: CoverageGapReason::LocalMissing,
+        };
+        let ranges = requested_ranges(IndexDataset::Ae, start, end, SyncMode::Ensure, &[gap]);
+        assert_eq!(
+            ranges,
+            vec![
+                (start, crate::parse::epoch_ms(2024, 5, 2, 0).unwrap()),
+                (
+                    crate::parse::epoch_ms(2024, 5, 2, 0).unwrap(),
+                    crate::parse::epoch_ms(2024, 5, 3, 0).unwrap()
+                ),
+                (crate::parse::epoch_ms(2024, 5, 3, 0).unwrap(), end),
+            ]
+        );
     }
 }

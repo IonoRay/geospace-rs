@@ -355,6 +355,9 @@ fn snapshot(releases: &[&str]) -> Sha256Digest {
 }
 
 fn quality(value: &str) -> QualityFlag {
+    if value.eq_ignore_ascii_case("realtime") {
+        return QualityFlag::Realtime;
+    }
     match value.as_bytes().first() {
         Some(b'f' | b'F' | b'D') => QualityFlag::Final,
         Some(b'p' | b'P' | b'r' | b'R') => QualityFlag::Provisional,

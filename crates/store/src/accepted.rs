@@ -39,7 +39,7 @@ impl ScopedStore {
         year: u16,
     ) -> Result<Vec<CatalogArtifact>, DownloadError> {
         let connection = self.catalog.connect()?;
-        let mut rows = connection.query("SELECT s.source_id,s.provider,s.dataset,s.year,s.month,s.edition,s.priority,a.sha256,a.byte_size,a.original_filename,a.media_type,f.last_modified_utc_ms,a.downloaded_at_utc_ms,a.local_mtime_ns,f.final_url,o.content_disposition FROM accepted_source x JOIN source_object s ON s.source_id=x.source_id JOIN artifact a ON a.sha256=x.artifact_sha256 JOIN fetch_attempt f ON f.observation_id=x.observation_id LEFT JOIN artifact_origin o ON o.artifact_sha256=a.sha256 AND o.source_id=s.source_id WHERE s.provider=? AND s.dataset=? AND (s.year=? OR s.month IS NULL) ORDER BY s.priority DESC,s.month", turso::params![provider,dataset,i64::from(year)]).await?;
+        let mut rows = connection.query("SELECT s.source_id,s.provider,s.dataset,s.year,s.month,s.edition,s.priority,a.sha256,a.byte_size,a.original_filename,a.media_type,f.last_modified_utc_ms,a.downloaded_at_utc_ms,a.local_mtime_ns,f.final_url,o.content_disposition, s.day FROM accepted_source x JOIN source_object s ON s.source_id=x.source_id JOIN artifact a ON a.sha256=x.artifact_sha256 JOIN fetch_attempt f ON f.observation_id=x.observation_id LEFT JOIN artifact_origin o ON o.artifact_sha256=a.sha256 AND o.source_id=s.source_id WHERE s.provider=? AND s.dataset=? AND (s.year=? OR s.month IS NULL) ORDER BY s.priority DESC,s.month", turso::params![provider,dataset,i64::from(year)]).await?;
         let mut result = Vec::new();
         while let Some(row) = rows.next().await? {
             let digest: Sha256Digest = row.get::<String>(7)?.parse()?;
@@ -58,6 +58,13 @@ impl ScopedStore {
                     .map(|value| {
                         u8::try_from(value)
                             .map_err(|_| DownloadError::NumericOverflow("source month"))
+                    })
+                    .transpose()?,
+                day: row
+                    .get::<Option<i64>>(16)?
+                    .map(|value| {
+                        u8::try_from(value)
+                            .map_err(|_| DownloadError::NumericOverflow("source day"))
                     })
                     .transpose()?,
                 edition: row.get::<Option<String>>(5)?.unwrap_or_default(),

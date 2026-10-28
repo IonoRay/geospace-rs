@@ -50,13 +50,14 @@ impl<'a> DownloadRepository<'a> {
         let transaction = connection.transaction().await?;
         transaction
             .execute(
-                "INSERT INTO source_object (source_id, provider, dataset, year, month, edition, priority, canonical_url, logical_name, created_at_utc_ms, updated_at_utc_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(source_id) DO UPDATE SET provider = excluded.provider, dataset = excluded.dataset, year = excluded.year, month = excluded.month, edition = excluded.edition, priority = excluded.priority, canonical_url = excluded.canonical_url, logical_name = excluded.logical_name, updated_at_utc_ms = excluded.updated_at_utc_ms",
+                "INSERT INTO source_object (source_id, provider, dataset, year, month, day, edition, priority, canonical_url, logical_name, created_at_utc_ms, updated_at_utc_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(source_id) DO UPDATE SET provider = excluded.provider, dataset = excluded.dataset, year = excluded.year, month = excluded.month, day = excluded.day, edition = excluded.edition, priority = excluded.priority, canonical_url = excluded.canonical_url, logical_name = excluded.logical_name, updated_at_utc_ms = excluded.updated_at_utc_ms",
                 params![
                     request.source_id(),
                     context.map(|item| item.provider.as_str()),
                     context.map(|item| item.dataset.as_str()),
                     context.map(|item| i64::from(item.year)),
                     context.and_then(|item| item.month.map(i64::from)),
+                    context.and_then(|item| item.day.map(i64::from)),
                     context.map(|item| item.edition.as_str()),
                     context.map(|item| i64::from(item.priority)),
                     request.url().as_str(),

@@ -181,6 +181,7 @@ mod tests {
         report.attempts.push(ionoray_indices::SourceAttempt {
             year: 2020,
             month: None,
+            day: None,
             local_recovery: false,
             gap_reason: Some(CoverageGapReason::NetworkFailure),
             source_id: Some("synthetic.source".to_owned()),

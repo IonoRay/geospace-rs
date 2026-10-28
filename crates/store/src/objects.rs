@@ -36,6 +36,8 @@ pub struct CatalogArtifact {
     pub year: u16,
     /// Optional monthly partition.
     pub month: Option<u8>,
+    /// Day within the month for a daily physical source.
+    pub day: Option<u8>,
     /// Publication edition.
     pub edition: String,
     /// Candidate priority.
@@ -58,7 +60,7 @@ pub(crate) async fn artifacts_for_year(
     let connection = database.connect()?;
     let mut rows = connection
         .query(
-            "SELECT s.source_id, s.provider, s.dataset, s.year, s.month, s.edition, s.priority, a.sha256, a.byte_size, a.original_filename, a.media_type, f.last_modified_utc_ms, a.downloaded_at_utc_ms, a.local_mtime_ns, o.final_url, o.content_disposition FROM source_object s JOIN artifact_origin o ON o.source_id = s.source_id JOIN artifact a ON a.sha256 = o.artifact_sha256 JOIN fetch_attempt f ON f.observation_id = o.last_observation_id WHERE s.provider = ? AND s.dataset = ? AND s.year = ? ORDER BY s.month, s.priority DESC, o.last_observed_at_utc_ms DESC",
+            "SELECT s.source_id, s.provider, s.dataset, s.year, s.month, s.edition, s.priority, a.sha256, a.byte_size, a.original_filename, a.media_type, f.last_modified_utc_ms, a.downloaded_at_utc_ms, a.local_mtime_ns, o.final_url, o.content_disposition, s.day FROM source_object s JOIN artifact_origin o ON o.source_id = s.source_id JOIN artifact a ON a.sha256 = o.artifact_sha256 JOIN fetch_attempt f ON f.observation_id = o.last_observation_id WHERE s.provider = ? AND s.dataset = ? AND s.year = ? ORDER BY s.month, s.priority DESC, o.last_observed_at_utc_ms DESC",
             turso::params![provider, dataset, i64::from(year)],
         )
         .await?;
@@ -75,6 +77,12 @@ pub(crate) async fn artifacts_for_year(
                 .get::<Option<i64>>(4)?
                 .map(|value| {
                     u8::try_from(value).map_err(|_| DownloadError::NumericOverflow("source month"))
+                })
+                .transpose()?,
+            day: row
+                .get::<Option<i64>>(16)?
+                .map(|value| {
+                    u8::try_from(value).map_err(|_| DownloadError::NumericOverflow("source day"))
                 })
                 .transpose()?,
             edition: row.get::<Option<String>>(5)?.unwrap_or_default(),

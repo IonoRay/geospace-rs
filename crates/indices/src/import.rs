@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashSet};
 
-use ionoray_core::{Epoch, Sha256Digest};
+use ionoray_core::Sha256Digest;
 use sha2::{Digest, Sha256};
 use turso::{Database, params};
 
@@ -9,8 +9,10 @@ use crate::{
     IndexError, ValidatedIndexFile,
     database::{YearDatabase, checkpoint, now_ms},
     parse::ParsedFile,
-    time::epoch_millis,
 };
+
+mod period;
+use period::{coverage, partition_key};
 
 mod applied;
 pub(crate) use applied::is_applied;
@@ -22,7 +24,7 @@ use records::{copy_active_records, insert_records};
 
 const PARSER_NAME: &str = "ionoray-indices";
 /// Increment only when parsed sample semantics or declared-missing handling changes.
-pub(crate) const PARSER_VERSION: &str = "indices-semantic-v3-explicit-missing";
+pub(crate) const PARSER_VERSION: &str = "indices-semantic-v4-ae-daily";
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct ImportSummary {
@@ -57,7 +59,7 @@ pub(crate) async fn import_parsed_file(
     }
     let release_id = release_id(file);
     let candidate = fingerprints_for_edition(&parsed, file.edition);
-    let partition = partition_key(file.month);
+    let partition = partition_key(file);
     let active = active_release(&year_database.database, &partition).await?;
     if release_exists(&year_database.database, &release_id).await? {
         let summary =
@@ -80,7 +82,7 @@ pub(crate) async fn import_parsed_file(
         });
     }
     let records = record_count(&parsed);
-    let (coverage_start, coverage_end) = coverage(file.year, file.month)?;
+    let (coverage_start, coverage_end) = coverage(file)?;
     let mut connection = year_database.database.connect()?;
     let transaction = connection.transaction().await?;
     transaction
@@ -149,7 +151,7 @@ pub(crate) async fn validate_candidate(
     file: &ValidatedIndexFile,
     parsed: &ParsedFile,
 ) -> Result<(), IndexError> {
-    let partition = partition_key(file.month);
+    let partition = partition_key(file);
     let active = active_release(&year_database.database, &partition).await?;
     let previous = active_samples(&year_database.database, active.as_deref()).await?;
     let candidate = fingerprints_for_edition(parsed, file.edition);
@@ -167,10 +169,6 @@ async fn release_exists(database: &Database, release_id: &str) -> Result<bool, I
         .await?;
     let count = rows.next().await?.map_or(Ok(0), |row| row.get::<i64>(0))?;
     Ok(count == 1)
-}
-
-fn partition_key(month: Option<u8>) -> String {
-    month.map_or_else(|| "rolling".to_owned(), |month| format!("month-{month:02}"))
 }
 
 async fn active_release(
@@ -422,6 +420,7 @@ fn release_id(file: &ValidatedIndexFile) -> String {
         file.year.to_string(),
         file.month
             .map_or_else(String::new, |value| value.to_string()),
+        file.day.map_or_else(String::new, |value| value.to_string()),
         file.edition.as_str().to_owned(),
         file.download.artifact.digest.to_string(),
         PARSER_NAME.to_owned(),
@@ -440,23 +439,6 @@ fn record_count(parsed: &ParsedFile) -> usize {
         ParsedFile::IriIgRz(records) => records.len(),
         ParsedFile::IriApF107(records) => records.len(),
     }
-}
-
-fn coverage(year: u16, month: Option<u8>) -> Result<(i64, i64), IndexError> {
-    let start_month = month.unwrap_or(1);
-    let (end_year, end_month) = match month {
-        None | Some(12) => (
-            year.checked_add(1)
-                .ok_or(IndexError::InvalidNumber("coverage end year"))?,
-            1,
-        ),
-        Some(value) => (year, value + 1),
-    };
-    let start = Epoch::maybe_from_gregorian_utc(i32::from(year), start_month, 1, 0, 0, 0, 0)
-        .map_err(|_| IndexError::InvalidNumber("coverage start"))?;
-    let end = Epoch::maybe_from_gregorian_utc(i32::from(end_year), end_month, 1, 0, 0, 0, 0)
-        .map_err(|_| IndexError::InvalidNumber("coverage end"))?;
-    Ok((epoch_millis(start)?, epoch_millis(end)?))
 }
 
 #[cfg(test)]

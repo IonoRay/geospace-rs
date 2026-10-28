@@ -151,6 +151,9 @@ fn maintenance_arguments_accept_inclusive_ranges_and_reject_invalid_bounds() {
 
 #[tokio::test]
 async fn schedule_preserves_order_and_offline_partial_reports() {
+    if !snapshots_present(&["Kp_ap_Ap_SN_F107_since_1932.txt", "ig_rz.dat"]) {
+        return;
+    }
     let home = tempfile::tempdir().unwrap();
     let store = IndexStore::open(Some(home.path())).await.unwrap();
     let start = "2020-07-01T12:00:00 UTC".parse::<Epoch>().unwrap();
@@ -231,6 +234,9 @@ fn range(
 
 #[tokio::test]
 async fn schedule_retains_failed_request_and_runs_next_job() {
+    if !snapshots_present(&["ig_rz.dat"]) {
+        return;
+    }
     let home = tempfile::tempdir().unwrap();
     let store = IndexStore::open(Some(home.path())).await.unwrap();
     let start = "2020-07-01T12:00:00 UTC".parse::<Epoch>().unwrap();
@@ -283,4 +289,40 @@ fn annual_template_serializes_explicit_policy_without_execution() {
         value,
         serde_json::json!({"operation":"year", "id":"annual_template", "year":2020,"policy":"AlwaysCheck"})
     );
+}
+
+// These real-data tests require the same approved optional snapshots as the build.
+// Missing input is reported separately from a processing or assertion failure.
+fn snapshots_present(names: &[&str]) -> bool {
+    let local = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../indices/cache");
+    let external = option_env!("IONORAY_CACHE_ROOT")
+        .filter(|root| !root.is_empty())
+        .map(|root| std::path::Path::new(root).join("crates/indices/cache"));
+    for name in names {
+        let path = external
+            .as_ref()
+            .map(|root| root.join(name))
+            .filter(|path| {
+                path.try_exists().unwrap_or_else(|error| {
+                    panic!("cannot access snapshot {}: {error}", path.display())
+                })
+            })
+            .unwrap_or_else(|| local.join(name));
+        match std::fs::metadata(&path) {
+            Ok(metadata) => assert!(
+                metadata.is_file(),
+                "snapshot is not a file: {}",
+                path.display()
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                eprintln!(
+                    "real snapshot processing not executed: missing {}",
+                    path.display()
+                );
+                return false;
+            }
+            Err(error) => panic!("cannot access snapshot {}: {error}", path.display()),
+        }
+    }
+    true
 }

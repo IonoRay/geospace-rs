@@ -19,7 +19,7 @@ pub(crate) async fn verify_year(store: &StoreRoot, year: u16) -> Result<VerifyRe
         let _guard = scoped.try_acquire_read_guard()?;
         let database = open_dataset(store, dataset, year, true).await?;
         let ready = ready_partitions(&database).await?;
-        let required = required_partitions(dataset);
+        let required = required_partitions(dataset, year);
         datasets_report.push(DatasetVerifyReport {
             dataset,
             ready_partitions: ready,

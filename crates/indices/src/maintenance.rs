@@ -37,7 +37,7 @@ async fn sync_selected(
     )
     .map_err(|_| IndexError::InvalidNumber("year end"))?;
     let mut report = empty_report(year, policy);
-    let mut failure = None;
+    let mut failures = Vec::new();
     for dataset in selected {
         match sync_dataset_interval(store, *dataset, start, end, policy).await {
             Ok(outcome) => {
@@ -46,23 +46,34 @@ async fn sync_selected(
                 add_summary(&mut report.summary, &outcome.report.summary);
                 report.changes.add(outcome.report.changes);
                 if !outcome.failures.is_empty() {
-                    failure = Some(IndexError::Validation {
-                        dataset: *dataset,
-                        path: store.layout().root().to_owned(),
-                        reason: outcome
-                            .failures
-                            .iter()
-                            .map(|item| item.message.as_str())
-                            .collect::<Vec<_>>()
-                            .join("; "),
-                    });
+                    failures.push(
+                        IndexError::Synchronization {
+                            dataset: *dataset,
+                            year,
+                            reason: outcome
+                                .failures
+                                .iter()
+                                .map(IntervalFailure::diagnostic)
+                                .collect::<Vec<_>>()
+                                .join("; "),
+                        }
+                        .to_string(),
+                    );
+                } else if *dataset == IndexDataset::Ae
+                    && !crate::maintenance_verify::dataset_year_is_ready(store, *dataset, year)
+                        .await?
+                {
+                    failures.push(format!("Ae {year}: incomplete active hourly coverage; use indices sync-range --dataset ae to inspect the residual gaps"));
                 }
             }
-            Err(error) => failure = Some(error),
+            Err(error) => failures.push(error.to_string()),
         }
     }
-    if let Some(error) = failure {
-        return Err(error);
+    if !failures.is_empty() {
+        return Err(IndexError::AnnualSynchronization {
+            year,
+            reason: failures.join("; "),
+        });
     }
     Ok(report)
 }
@@ -144,7 +155,7 @@ pub(crate) async fn sync_dataset_interval(
                 "partial",
                 &failures
                     .iter()
-                    .map(|item| item.message.as_str())
+                    .map(IntervalFailure::diagnostic)
                     .collect::<Vec<_>>()
                     .join("; "),
             )
@@ -294,8 +305,11 @@ pub(crate) const fn datasets() -> [IndexDataset; 5] {
         IndexDataset::IriApF107,
     ]
 }
-pub(crate) const fn required_partitions(dataset: IndexDataset) -> usize {
+pub(crate) fn required_partitions(dataset: IndexDataset, year: u16) -> usize {
     match dataset {
+        IndexDataset::Ae if year >= 2021 => (1..=12)
+            .map(|month| usize::from(crate::parse::days_in_month(year, month)))
+            .sum(),
         IndexDataset::Dst | IndexDataset::Ae => 12,
         _ => 1,
     }
@@ -331,4 +345,30 @@ fn add_summary(total: &mut MaintenanceSummary, part: &MaintenanceSummary) {
     total.artifacts_created += part.artifacts_created;
     total.releases_created += part.releases_created;
     total.releases_reused += part.releases_reused;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn annual_ae_sync_rejects_empty_offline_year() {
+        let temporary = tempfile::TempDir::new().unwrap();
+        let store = ionoray_store::Store::open_root(Some(temporary.path())).unwrap();
+        let error = sync_selected(&store, 2024, SyncPolicy::Offline, &[IndexDataset::Ae])
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            error,
+            IndexError::AnnualSynchronization { year: 2024, .. }
+        ));
+        assert!(
+            error
+                .to_string()
+                .contains("incomplete active hourly coverage")
+        );
+        assert_eq!(required_partitions(IndexDataset::Ae, 2024), 366);
+        assert_eq!(required_partitions(IndexDataset::Ae, 2023), 365);
+        assert_eq!(required_partitions(IndexDataset::Ae, 2020), 12);
+    }
 }

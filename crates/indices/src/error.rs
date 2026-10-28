@@ -96,6 +96,24 @@ pub enum IndexError {
         /// Requested month.
         month: u8,
     },
+    /// Annual synchronization failed; earlier datasets may have committed.
+    #[error("index synchronization failed for {year}: {reason}")]
+    AnnualSynchronization {
+        /// Requested calendar year.
+        year: u16,
+        /// Dataset-specific failure details.
+        reason: String,
+    },
+    /// A synchronization failed; usable earlier partitions may have committed.
+    #[error("{dataset:?} synchronization failed for {year}: {reason}")]
+    Synchronization {
+        /// Dataset being synchronized.
+        dataset: IndexDataset,
+        /// Requested calendar year.
+        year: u16,
+        /// Dates, URLs and causes of the failed attempts.
+        reason: String,
+    },
     /// Downloaded bytes did not cover the requested period or format.
     #[error("invalid {dataset:?} artifact {path}: {reason}")]
     Validation {

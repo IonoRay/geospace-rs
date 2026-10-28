@@ -68,6 +68,7 @@ pub(crate) async fn parse_file(
     path: &Path,
     year: u16,
     month: Option<u8>,
+    day: Option<u8>,
 ) -> Result<ParsedFile, IndexError> {
     let content =
         tokio::fs::read_to_string(path)
@@ -81,7 +82,22 @@ pub(crate) async fn parse_file(
         IndexDataset::Dst => {
             required_month(month).and_then(|month| parse_dst(&content, year, month))
         }
-        IndexDataset::Ae => required_month(month).and_then(|month| parse_ae(&content, year, month)),
+        IndexDataset::Ae => required_month(month).and_then(|month| {
+            let parsed = parse_ae(&content, year, month)?;
+            if let (Some(day), ParsedFile::Ae(records)) = (day, &parsed) {
+                validate_date(year, month, day)?;
+                let start = epoch_ms(year, month, day, 0)?;
+                if records
+                    .iter()
+                    .any(|record| record.epoch_ms < start || record.epoch_ms >= start + 86_400_000)
+                {
+                    return Err(format!(
+                        "AE file does not contain requested day {year}-{month:02}-{day:02}"
+                    ));
+                }
+            }
+            Ok(parsed)
+        }),
         IndexDataset::IriIgRz => crate::parse_iri::parse_ig_rz(&content, year),
         IndexDataset::IriApF107 => crate::parse_iri::parse_apf107(&content, year),
     }
@@ -341,7 +357,7 @@ fn validate_date(year: u16, month: u8, day: u8) -> Result<(), String> {
     Ok(())
 }
 
-fn days_in_month(year: u16, month: u8) -> u8 {
+pub(crate) fn days_in_month(year: u16, month: u8) -> u8 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,

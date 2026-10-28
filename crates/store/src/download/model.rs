@@ -26,6 +26,8 @@ pub struct SourceContext {
     pub year: u16,
     /// Optional monthly partition.
     pub month: Option<u8>,
+    /// Day within the month for a daily physical source.
+    pub day: Option<u8>,
     /// Upstream publication edition.
     pub edition: String,
     /// Higher values are preferred when resolving candidates.

@@ -94,7 +94,8 @@ pub(super) async fn copy_active_records(
 const fn quality(edition: IndexEdition) -> &'static str {
     match edition {
         IndexEdition::Final => "final",
-        IndexEdition::Provisional | IndexEdition::Realtime => "provisional",
+        IndexEdition::Provisional => "provisional",
+        IndexEdition::Realtime => "realtime",
         IndexEdition::Rolling => "unknown",
     }
 }

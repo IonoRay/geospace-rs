@@ -42,9 +42,11 @@ pub(crate) async fn recover(
         let mut recovered = false;
         for artifact in artifacts {
             if let Some(month) = artifact.month {
-                let month_start = crate::parse::epoch_ms(year, month, 1, 0)
+                let month_start = crate::parse::epoch_ms(year, month, artifact.day.unwrap_or(1), 0)
                     .map_err(|_| IndexError::InvalidNumber("month"))?;
-                let month_end = if month == 12 {
+                let month_end = if artifact.day.is_some() {
+                    Ok(month_start + 86_400_000)
+                } else if month == 12 {
                     crate::parse::epoch_ms(year + 1, 1, 1, 0)
                 } else {
                     crate::parse::epoch_ms(year, month + 1, 1, 0)
@@ -167,13 +169,21 @@ async fn recover_artifact(
             None,
         ));
     }
-    let parsed = parse_file(dataset, &artifact.artifact.path, year, artifact.month).await?;
+    let parsed = parse_file(
+        dataset,
+        &artifact.artifact.path,
+        year,
+        artifact.month,
+        artifact.day,
+    )
+    .await?;
     let file = ValidatedIndexFile {
         source_id: artifact.source_id.clone(),
         canonical_url: None,
         dataset,
         year,
         month: artifact.month,
+        day: artifact.day,
         edition: edition(&artifact.edition)?,
         records: 0,
         origin: IndexFileOrigin::LocalCas,

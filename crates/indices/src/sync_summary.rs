@@ -65,6 +65,7 @@ mod tests {
             dataset: IndexDataset::KpApF107,
             year,
             month: None,
+            day: None,
             edition: IndexEdition::Rolling,
             records: 1,
             origin: IndexFileOrigin::Upstream,

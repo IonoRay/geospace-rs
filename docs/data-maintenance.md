@@ -83,6 +83,54 @@ matching packaged snapshots when no accepted body was usable. Dst and AE are exc
 packaging the complete Kyoto history would be disproportionate; offline access
 to those datasets requires an existing local CAS.
 
+## AE sources and daily storage
+
+AE from 2021 uses one physical E02 file per UTC day. The downloader first tries
+`ae_provisional/YYYYMM/aeYYMMDD.for.request`, then
+`ae_realtime/data_dir/YYYY/MM/DD/aeYYMMDD`. The latter is the official numeric
+repository linked from Kyoto's [realtime AE page](https://wdc.kugi.kyoto-u.ac.jp/ae_realtime/).
+Historical provisional monthly sources through 2020 retain their published
+physical cadence; the old realtime monthly URL template is no longer used for AE.
+
+A missing provisional candidate (HTTP 404/410) followed by successful realtime
+retrieval is normal fallback, recorded in the fetch catalog without failing the
+operation. Transport and parsing failures remain failures. When all candidates
+fail, diagnostics identify the UTC day and each attempted URL. Annual sync keeps
+errors from all datasets and rejects incomplete AE hourly coverage; a successful
+partial download does not establish complete yearly coverage.
+
+The stored field remains hourly AE in nT, using the upstream E02 hourly mean
+(column bytes 394..400), without recomputing the minute average. Declared missing
+means (`99999`) remain NULL. Reads distinguish `Realtime` from `Provisional`.
+Monthly/daily source dates, SHA-256, editions and sample provenance survive
+retention and offline reconstruction. Interval requests retrieve only intersecting
+physical days; `Ensure` retrieves missing days within the requested bounds.
+
+This update changes the object-catalog schema and parser version. There is no
+migration for old stores. For a fresh run, use an empty home; the existing VS Code
+**Geospace Data: sync all indices for year (online)** launch configuration still
+accepts `~/.ionoray/geospace-rs` and `2024`. Annual 2024 AE planning includes 366
+days and does not guarantee that every upstream hourly value is available.
+
+Bounded CLI verification before an annual run:
+
+```bash
+nix develop .#default --command cargo run --locked --offline -p ionoray-geospace --no-default-features --features cli,indices --bin geospace -- --home /tmp/geospace-ae-check indices sync-range --dataset ae --start 2024-05-01T00:00:00Z --end 2024-05-02T00:00:00Z --mode refresh
+```
+
+The same download/import implementation is exercised without upstream access by
+`download::service::ae_tests::daily_fallback_import_repeat_and_offline_rebuild`:
+
+```bash
+nix develop .#default --command cargo test --locked --offline -p ionoray-indices download::service::ae_tests::daily_fallback_import_repeat_and_offline_rebuild -- --exact
+```
+
+The test uses two verbatim official daily files with URLs and hashes in
+`crates/indices/tests/fixtures/ae/README.md`. Useful breakpoints are
+`download::service::transfer::download_candidate` (candidate URL and source day)
+and `import::import_parsed_file` (daily partition, selected samples, edition).
+Terminal checks and VS Code breakpoint operation remain separate verification.
+
 ## F10.7 gap handling
 
 GFZ marks missing observed F10.7 values as `-1.0`. Model-ready normalization

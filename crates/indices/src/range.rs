@@ -184,6 +184,8 @@ pub struct SourceAttempt {
     pub year: u16,
     /// Source partition month when applicable.
     pub month: Option<u8>,
+    /// Day within the month for a daily physical source.
+    pub day: Option<u8>,
     /// Whether the attempt used only local recovery.
     pub local_recovery: bool,
     /// Typed residual-gap reason for a failed attempt.

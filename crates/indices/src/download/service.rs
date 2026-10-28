@@ -7,7 +7,7 @@ use url::Url;
 #[path = "service_transfer.rs"]
 mod transfer;
 #[cfg(test)]
-use transfer::{complete_month, download_file};
+use transfer::{complete_period, download_file};
 use transfer::{download_cached, download_file_for_years, download_file_unlocked_for_years};
 
 use crate::{
@@ -35,6 +35,8 @@ pub(crate) struct PreparedYearDownloadReport {
 pub(crate) struct IntervalFailure {
     pub(crate) year: u16,
     pub(crate) month: Option<u8>,
+    /// Day within the month for a daily physical source.
+    pub(crate) day: Option<u8>,
     pub(crate) kind: IntervalFailureKind,
     pub(crate) message: String,
     pub(crate) source_id: Option<String>,
@@ -52,12 +54,26 @@ impl IntervalFailure {
         Self {
             year,
             month,
+            day: None,
             kind,
             message: message.into(),
             source_id: None,
             canonical_url: None,
             edition: None,
         }
+    }
+
+    pub(crate) fn diagnostic(&self) -> String {
+        let period = match (self.month, self.day) {
+            (Some(month), Some(day)) => format!("{}-{month:02}-{day:02}", self.year),
+            (Some(month), None) => format!("{}-{month:02}", self.year),
+            _ => self.year.to_string(),
+        };
+        format!(
+            "{period} {}: {}",
+            self.canonical_url.as_deref().unwrap_or("local"),
+            self.message
+        )
     }
 
     fn candidate(
@@ -69,6 +85,7 @@ impl IntervalFailure {
         Self {
             year: source.year,
             month: source.month,
+            day: source.day,
             kind,
             message: message.into(),
             source_id: Some(candidate.source_id.clone()),
@@ -134,6 +151,7 @@ pub(crate) async fn query_year(
                 dataset: source.dataset,
                 year,
                 month: source.month,
+                day: source.day,
                 edition: candidate.edition,
                 source_id: candidate.source_id.clone(),
                 query,
@@ -142,10 +160,23 @@ pub(crate) async fn query_year(
             break;
         }
         if !selected {
-            return Err(IndexError::SourceUnavailable {
+            return Err(IndexError::Synchronization {
                 dataset: source.dataset,
                 year,
-                month: source.month.unwrap_or(0),
+                reason: source
+                    .candidates
+                    .iter()
+                    .map(|candidate| {
+                        IntervalFailure::candidate(
+                            &source,
+                            candidate,
+                            IntervalFailureKind::RemoteUnavailable,
+                            "source is unavailable",
+                        )
+                        .diagnostic()
+                    })
+                    .collect::<Vec<_>>()
+                    .join("; "),
             });
         }
     }
@@ -180,11 +211,21 @@ pub(crate) async fn download_year(
         years.extend(imported_years(store, source.dataset));
         years.sort_unstable();
         years.dedup();
-        files.extend(
-            download_file_unlocked_for_years(&scoped, source, mode, &years)
-                .await?
-                .files,
-        );
+        let dataset = source.dataset;
+        let prepared = download_file_unlocked_for_years(&scoped, source, mode, &years).await?;
+        if prepared.files.is_empty() {
+            return Err(IndexError::Synchronization {
+                dataset,
+                year,
+                reason: prepared
+                    .failures
+                    .iter()
+                    .map(IntervalFailure::diagnostic)
+                    .collect::<Vec<_>>()
+                    .join("; "),
+            });
+        }
+        files.extend(prepared.files);
     }
     tracing::info!(
         operation = "indices.download_year",
@@ -333,6 +374,7 @@ fn make_request(
         dataset: source.dataset.as_str().to_owned(),
         year: source.year,
         month: source.month,
+        day: source.day,
         edition: candidate.edition.as_str().to_owned(),
         priority: candidate.edition.priority(),
     }))
@@ -341,3 +383,7 @@ fn make_request(
 #[cfg(test)]
 #[path = "service_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "ae_tests.rs"]
+mod ae_tests;

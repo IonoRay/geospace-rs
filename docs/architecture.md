@@ -214,9 +214,14 @@ color for console pretty output. `RUST_LOG` applies to both sinks.
   produce a new immutable CAS artifact.
 - [WDC Kyoto](https://wdc.kugi.kyoto-u.ac.jp/dstdir/) Dst monthly sources are
   tried as final, provisional, then realtime.
-- [WDC Kyoto](https://wdc.kugi.kyoto-u.ac.jp/aedir/) AE monthly sources are
-  tried as provisional, then realtime for the currently supported 2020
-  reference path.
+- [WDC Kyoto](https://wdc.kugi.kyoto-u.ac.jp/aedir/) AE uses historical
+  provisional monthly E02 files through 2020. From 2021, physical sources and
+  active/history partitions are daily: provisional E02 first, then the official
+  `ae_realtime/data_dir/YYYY/MM/DD/aeYYMMDD` repository. Each sample retains
+  its actual edition; realtime quality is distinct from provisional quality.
+  A 404/410 followed by a usable candidate is normal fallback; network and
+  parsing failures still fail the requested source check. Daily source metadata
+  is persisted in the object catalog for offline reconstruction.
 - [IRI](https://irimodel.org/indices/) publishes rolling `ig_rz.dat` and
   `apf107.dat` files. The index product derives daily interpolated Rz12/IG12 and
   adjusted daily/81-day/365-day F10.7 while preserving source provenance.

@@ -159,7 +159,7 @@ async fn final_coverage(
         field.gaps = field
             .gaps
             .iter()
-            .flat_map(split_at_month_boundaries)
+            .flat_map(|gap| split_at_source_boundaries(gap, request.dataset))
             .collect();
         for gap in &mut field.gaps {
             annotate_gap(gap, attempts);
@@ -170,9 +170,15 @@ async fn final_coverage(
 
 fn annotate_gap(gap: &mut crate::CoverageGap, attempts: &[crate::SourceAttempt]) {
     let same_partition = |attempt: &crate::SourceAttempt| {
-        attempt
-            .month
-            .is_some_and(|month| same_month(gap.start_utc_ms, attempt.year, month))
+        attempt.month.is_some_and(|month| {
+            same_month(gap.start_utc_ms, attempt.year, month)
+                && attempt.day.is_none_or(|day| {
+                    crate::time::epoch_from_millis(gap.start_utc_ms)
+                        .to_gregorian_utc()
+                        .2
+                        == day
+                })
+        })
     };
     if attempts
         .iter()
@@ -187,6 +193,37 @@ fn annotate_gap(gap: &mut crate::CoverageGap, attempts: &[crate::SourceAttempt])
     {
         gap.reason = reason;
     }
+}
+
+fn split_at_source_boundaries(
+    gap: &crate::CoverageGap,
+    dataset: crate::IndexDataset,
+) -> Vec<crate::CoverageGap> {
+    split_at_month_boundaries(gap)
+        .into_iter()
+        .flat_map(|gap| {
+            if dataset != crate::IndexDataset::Ae
+                || crate::time::epoch_from_millis(gap.start_utc_ms)
+                    .to_gregorian_utc()
+                    .0
+                    < 2021
+            {
+                return vec![gap];
+            }
+            let mut result = Vec::new();
+            let mut start = gap.start_utc_ms;
+            while start < gap.end_utc_ms {
+                let end = ((start.div_euclid(86_400_000) + 1) * 86_400_000).min(gap.end_utc_ms);
+                result.push(crate::CoverageGap {
+                    start_utc_ms: start,
+                    end_utc_ms: end,
+                    ..gap.clone()
+                });
+                start = end;
+            }
+            result
+        })
+        .collect()
 }
 
 fn split_at_month_boundaries(gap: &crate::CoverageGap) -> Vec<crate::CoverageGap> {
@@ -232,6 +269,7 @@ mod tests {
         crate::SourceAttempt {
             year: 2020,
             month: None,
+            day: None,
             local_recovery: false,
             gap_reason: Some(CoverageGapReason::NetworkFailure),
             source_id: Some("synthetic.source".to_owned()),
@@ -300,5 +338,33 @@ mod tests {
         });
         assert_eq!(parts.len(), 2);
         assert_eq!(parts[0].end_utc_ms, parts[1].start_utc_ms);
+    }
+    #[test]
+    fn ae_gaps_cross_from_monthly_to_daily_and_match_exact_attempt_day() {
+        let start = crate::parse::epoch_ms(2020, 12, 31, 23).unwrap();
+        let end = crate::parse::epoch_ms(2021, 1, 3, 0).unwrap();
+        let gap = crate::CoverageGap {
+            field: crate::IndexField::Ae,
+            start_utc_ms: start,
+            end_utc_ms: end,
+            reason: CoverageGapReason::UpstreamMissing,
+        };
+        let parts = split_at_source_boundaries(&gap, crate::IndexDataset::Ae);
+        assert_eq!(parts.len(), 3);
+        assert_eq!(
+            parts[1].end_utc_ms,
+            crate::parse::epoch_ms(2021, 1, 2, 0).unwrap()
+        );
+        let mut failed = failed_refresh();
+        failed.year = 2021;
+        failed.month = Some(1);
+        failed.day = Some(1);
+        let mut successful = failed.clone();
+        successful.day = Some(2);
+        successful.committed = true;
+        successful.gap_reason = None;
+        let mut first = parts[1].clone();
+        annotate_gap(&mut first, &[successful, failed]);
+        assert_eq!(first.reason, CoverageGapReason::NetworkFailure);
     }
 }

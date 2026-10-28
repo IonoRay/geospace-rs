@@ -54,6 +54,8 @@ pub struct ValidatedIndexFile {
     pub year: u16,
     /// Month for monthly files; absent for cumulative files.
     pub month: Option<u8>,
+    /// Day within the month for a daily physical source.
+    pub day: Option<u8>,
     /// Selected upstream publication maturity.
     pub edition: IndexEdition,
     /// Number of daily or hourly records verified for the period.
@@ -82,6 +84,8 @@ pub struct QueriedIndexFile {
     pub year: u16,
     /// Optional month.
     pub month: Option<u8>,
+    /// Day within the month for a daily physical source.
+    pub day: Option<u8>,
     /// Candidate publication edition.
     pub edition: IndexEdition,
     /// Stable source-object identity.

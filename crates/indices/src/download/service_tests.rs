@@ -11,11 +11,11 @@ async fn remote_failure_falls_back_to_valid_bundled_source() {
     let store = ionoray_store::Store::open_root(Some(temporary.path())).unwrap();
     let source = rolling_source("test.gfz.fallback.2020");
     if source.cache.is_none() {
-        assert!(
-            download_file(&store, source, CheckMode::Metadata)
-                .await
-                .is_err()
-        );
+        let result = download_file(&store, source, CheckMode::Metadata)
+            .await
+            .unwrap();
+        assert!(result.files.is_empty());
+        assert_eq!(result.failures.len(), 1);
         return;
     }
     let files = download_file(&store, source, CheckMode::Metadata)
@@ -35,6 +35,7 @@ async fn failed_month_does_not_stop_later_interval_source() {
         dataset: crate::IndexDataset::Dst,
         year: 2020,
         month: Some(1),
+        day: None,
         logical_name: "dst2001.for.request".to_owned(),
         candidates: vec![SourceCandidate {
             source_id: "test.dst.failed.202001".to_owned(),
@@ -75,6 +76,7 @@ fn rolling_source(source_id: &str) -> SourceFile {
         dataset: crate::IndexDataset::KpApF107,
         year: 2020,
         month: None,
+        day: None,
         logical_name: "Kp_ap_Ap_SN_F107_since_1932.txt".to_owned(),
         candidates: vec![SourceCandidate {
             source_id: source_id.to_owned(),
@@ -86,9 +88,9 @@ fn rolling_source(source_id: &str) -> SourceFile {
 }
 
 #[test]
-fn complete_month_skips_lower_candidate_only_with_all_real_slots() {
-    assert!(complete_month(&monthly_file(false)));
-    assert!(!complete_month(&monthly_file(true)));
+fn complete_period_skips_lower_candidate_only_with_all_real_slots() {
+    assert!(complete_period(&monthly_file(false)));
+    assert!(!complete_period(&monthly_file(true)));
 }
 
 fn monthly_file(null_slot: bool) -> PreparedIndexFile {
@@ -109,6 +111,7 @@ fn monthly_file(null_slot: bool) -> PreparedIndexFile {
             dataset: crate::IndexDataset::Dst,
             year: 2020,
             month: Some(1),
+            day: None,
             edition: crate::IndexEdition::Final,
             records: records.len(),
             origin: IndexFileOrigin::Upstream,

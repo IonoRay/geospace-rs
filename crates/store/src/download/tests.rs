@@ -34,6 +34,7 @@ async fn bundled_bytes_use_cas_and_record_provenance_without_http() {
         dataset: "indices".to_owned(),
         year: 2020,
         month: None,
+        day: None,
         edition: "rolling".to_owned(),
         priority: 100,
     });
@@ -112,6 +113,7 @@ async fn downloaded_object_maps_back_to_its_source_partition_and_filename() {
             dataset: "indices".to_owned(),
             year: 2020,
             month: None,
+            day: None,
             edition: "final".to_owned(),
             priority: 300,
         });
