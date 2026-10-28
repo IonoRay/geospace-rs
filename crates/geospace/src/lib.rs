@@ -22,6 +22,9 @@ pub use error::GeospaceError;
 pub use ionoray_core::{
     Duration, Epoch, GeodeticPosition, PositionError, QueryPoint, TimeScale, units,
 };
+/// Independent OMNI CDF data product API.
+#[cfg(feature = "omni")]
+pub use ionoray_omni as omni;
 
 /// Direct IGRF model API, re-exported without data-store access.
 #[cfg(feature = "igrf")]
@@ -71,6 +74,8 @@ pub const fn capabilities() -> &'static [&'static str] {
     &[
         #[cfg(feature = "indices")]
         "indices",
+        #[cfg(feature = "omni")]
+        "omni",
         #[cfg(feature = "igrf")]
         "igrf",
         #[cfg(feature = "iri")]

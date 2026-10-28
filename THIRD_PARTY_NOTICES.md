@@ -10,6 +10,20 @@ It does not claim that all redistribution rights have been cleared. Ordinary
 Rust dependencies are identified by `Cargo.lock` and retain their own licenses;
 review their notices when distributing compiled artifacts.
 
+## OMNI solar-wind data
+
+- Software dependency: [cdf-rs](https://github.com/ysar/cdf-rs), crate `cdf`
+  pinned to 0.1.4 (MIT), used directly without a fork or a native CDF backend.
+- Runtime data: [NASA SPDF OMNI CDF archive](https://cdaweb.gsfc.nasa.gov/pub/data/omni/omni_cdaweb/).
+  Downloads retain the original files, URLs, filenames, and SHA-256 identities.
+- A small verbatim HRO ASCII reference extract is retained for validation;
+  source, full-file hash, and exact line selections are in the
+  [fixture provenance](crates/omni/tests/fixtures/README.md).
+- Acknowledge NASA SPDF/OMNI and the contributing instrument/data teams in
+  scientific use; retain the selected product's metadata and citation guidance.
+  Data is not relicensed as original IonoRay software. HRO2 and HRO are distinct
+  products, not interchangeable filename revisions.
+
 ## IGRF-14
 
 - Material: `crates/models/igrf/data/igrf14coeffs.txt`, official IAGA coefficients

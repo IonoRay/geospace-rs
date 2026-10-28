@@ -7,6 +7,7 @@ ionoray-python -- ionoray-geospace (indices + explicit optional model features)
     `-- ionoray-observability
 ionoray-geospace
     |-- ionoray-indices -- ionoray-store -- ionoray-core
+    |-- ionoray-omni ----- ionoray-store -- ionoray-core
     |-- model crates ---------------------- ionoray-core
     `-- ionoray-observability (CLI only)
 ```
@@ -14,6 +15,15 @@ ionoray-geospace
 - `ionoray-core` owns stable time, position, unit, identifier, and provenance types.
 - `ionoray-store` owns Turso databases, the local layout, schema rebuilds, and CAS/download logic.
 - `ionoray-indices` is an independent Kp/Ap/F10.7/Dst/AE data product.
+- `ionoray-omni` is an independent one-minute HRO2/HRO CDF data product. It
+  uses cdf-rs directly, and reuses the scoped store under `<home>/omni/`.
+  Parsed time series are read from immutable CDFs, not duplicated in Turso.
+  Online completion and offline reads share a month resolver: accepted HRO2
+  precedes HRO unless the caller fixes a product. Online rechecks upgrade HRO
+  when HRO2 appears; upstream absence does not downgrade accepted local HRO2.
+  Selection identity comes from the accepted fetch request, not mutable metadata
+  of a later failed candidate. Existing catalog columns supply provenance;
+  no additional current-selection database or schema migration is introduced.
 - Each model family is an independent synchronous executor with explicit inputs.
 - `ionoray-geospace` is the only assembly layer and also owns the `geospace` binary.
 - `ionoray-observability` owns process-level tracing configuration. Model and

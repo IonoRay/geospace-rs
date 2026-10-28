@@ -2,6 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "geospace: build OMNI CLI",
+      "type": "process",
+      "command": "nix",
+      "args": ["develop", ".#default", "--command", "cargo", "build", "--locked", "--offline", "-p", "ionoray-geospace", "--features", "cli,omni", "--bin", "geospace"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": ["$rustc"]
+    },
+    {
       "label": "geospace: build NRLMSIS 2.1",
       "type": "process",
       "command": "nix",

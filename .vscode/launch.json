@@ -2,6 +2,40 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Geospace OMNI: download date range (online)",
+      "type": "lldb",
+      "sourceLanguages": ["rust"],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/geospace",
+      "args": [
+        "--home", "${input:omniDownloadHome}",
+        "omni", "download",
+        "--start", "${input:omniStart}",
+        "--end", "${input:omniEnd}",
+        "--cadence", "${input:omniCadence}",
+        "--product", "${input:omniProduct}",
+        "--force=${input:omniForce}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false,
+      "preLaunchTask": "geospace: build OMNI CLI",
+      "env": {"RUST_BACKTRACE": "1"}
+    },
+    {
+      "name": "Geospace OMNI: read May 2024 (offline)",
+      "type": "lldb",
+      "sourceLanguages": ["rust"],
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/geospace",
+      "args": ["--home", "${input:omniHome}", "omni", "read", "--start", "2024-05-10T00:00:00Z", "--end", "2024-05-10T00:03:00Z"],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": true,
+      "preLaunchTask": "geospace: build OMNI CLI",
+      "env": {"RUST_BACKTRACE": "1", "IONORAY_LOG_CONSOLE": "off"}
+    },
+    {
       "name": "Geospace Rust: NRLMSIS 2.1",
       "type": "lldb",
       "sourceLanguages": ["rust"],
@@ -230,6 +264,51 @@
     }
   ],
   "inputs": [
+    {
+      "id": "omniDownloadHome",
+      "type": "promptString",
+      "default": "~/.ionoray/geospace-rs",
+      "description": "OMNI 下载的数据根目录（选择实际 IONORAY_HOME，绝对路径或 ~/...）；写入其 omni/ 子目录"
+    },
+    {
+      "id": "omniStart",
+      "type": "promptString",
+      "default": "2024-05-10T00:00:00Z",
+      "description": "起始 UTC 时间，包含该时刻（例如 2024-05-10T00:00:00Z）"
+    },
+    {
+      "id": "omniEnd",
+      "type": "promptString",
+      "default": "2024-05-13T00:00:00Z",
+      "description": "结束 UTC 时间，不包含该时刻；以上默认区间为 5 月 10—12 日"
+    },
+    {
+      "id": "omniCadence",
+      "type": "pickString",
+      "options": ["1min"],
+      "default": "1min",
+      "description": "OMNI 源数据分辨率；当前后端仅支持 1min"
+    },
+    {
+      "id": "omniProduct",
+      "type": "pickString",
+      "options": ["auto", "hro2", "hro"],
+      "default": "auto",
+      "description": "产品：auto 优先 HRO2、缺文件再用 HRO并检查升级；hro2/hro 固定产品"
+    },
+    {
+      "id": "omniForce",
+      "type": "pickString",
+      "options": ["false", "true"],
+      "default": "false",
+      "description": "是否强制重新下载月文件并比较 SHA-256；false 仍检查 HRO2 是否更新"
+    },
+    {
+      "id": "omniHome",
+      "type": "promptString",
+      "default": "/tmp/geospace-omni-cli-validation-20261028",
+      "description": "Parent IONORAY_HOME containing an already downloaded May 2024 omni/ child (offline read)"
+    },
     {
       "id": "indicesYear",
       "type": "promptString",

@@ -16,13 +16,17 @@ pub enum GeospaceError {
     #[error("index maintenance is partial: {}", .0.diagnostic())]
     PartialIndices(Box<ionoray_indices::RangeSyncReport>),
     /// Local data infrastructure failed.
-    #[cfg(any(feature = "indices", feature = "cli"))]
+    #[cfg(any(feature = "indices", feature = "omni", feature = "cli"))]
     #[error(transparent)]
     Store(#[from] ionoray_store::StoreError),
     /// Geophysical index download or validation failed.
     #[cfg(feature = "indices")]
     #[error(transparent)]
     Indices(#[from] ionoray_indices::IndexError),
+    /// OMNI download or offline CDF read failed.
+    #[cfg(feature = "omni")]
+    #[error(transparent)]
+    Omni(#[from] ionoray_omni::OmniError),
     /// A geodetic input was invalid.
     #[error(transparent)]
     Position(#[from] ionoray_core::PositionError),

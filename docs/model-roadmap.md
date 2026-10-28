@@ -56,7 +56,9 @@ scientific model families, and therefore should not live under `crates/models`.
 T96, magnetospheric boundary, electrodynamic, and auroral models require solar
 wind and IMF inputs that are not in the current Kp/Ap/F10.7/Dst/AE product. Add a
 source-specific OMNI data product before offering automatic preparation for
-these models. At minimum it should preserve:
+these models. The initial [OMNI CDF product](omni.md) now downloads one-minute
+HRO2/HRO files and reads explicit samples offline. Automatic model preparation
+remains future work. Its required inputs include:
 
 - solar-wind velocity and proton density;
 - dynamic pressure, either observed or derived with recorded provenance;

@@ -405,6 +405,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cdf"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7108592a9c9ae3abe21092e74837092cfdf230f86193f18f5ccb8be999267a17"
+
+[[package]]
 name = "census"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1517,6 +1523,7 @@ dependencies = [
  "ionoray-iri",
  "ionoray-msis",
  "ionoray-observability",
+ "ionoray-omni",
  "ionoray-store",
  "serde",
  "serde_json",
@@ -1620,6 +1627,22 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "ionoray-omni"
+version = "0.1.0"
+dependencies = [
+ "cdf",
+ "ionoray-core",
+ "ionoray-store",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "url",
 ]
 
 [[package]]

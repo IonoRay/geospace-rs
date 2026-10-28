@@ -42,6 +42,10 @@ pub struct CatalogArtifact {
     pub edition: String,
     /// Candidate priority.
     pub priority: i32,
+    /// Exact URL from the artifact's successful fetch, independent of later attempts.
+    pub canonical_url: String,
+    /// Domain acceptance time; absent when listing unaccepted download history.
+    pub accepted_at_utc_ms: Option<i64>,
     /// Actual final URL after redirects.
     pub final_url: String,
     /// Raw upstream `Content-Disposition`, when supplied.
@@ -60,7 +64,7 @@ pub(crate) async fn artifacts_for_year(
     let connection = database.connect()?;
     let mut rows = connection
         .query(
-            "SELECT s.source_id, s.provider, s.dataset, s.year, s.month, s.edition, s.priority, a.sha256, a.byte_size, a.original_filename, a.media_type, f.last_modified_utc_ms, a.downloaded_at_utc_ms, a.local_mtime_ns, o.final_url, o.content_disposition, s.day FROM source_object s JOIN artifact_origin o ON o.source_id = s.source_id JOIN artifact a ON a.sha256 = o.artifact_sha256 JOIN fetch_attempt f ON f.observation_id = o.last_observation_id WHERE s.provider = ? AND s.dataset = ? AND s.year = ? ORDER BY s.month, s.priority DESC, o.last_observed_at_utc_ms DESC",
+            "SELECT s.source_id, s.provider, s.dataset, s.year, s.month, s.edition, s.priority, a.sha256, a.byte_size, a.original_filename, a.media_type, f.last_modified_utc_ms, a.downloaded_at_utc_ms, a.local_mtime_ns, o.final_url, o.content_disposition, s.day, f.request_url FROM source_object s JOIN artifact_origin o ON o.source_id = s.source_id JOIN artifact a ON a.sha256 = o.artifact_sha256 JOIN fetch_attempt f ON f.observation_id = o.last_observation_id WHERE s.provider = ? AND s.dataset = ? AND s.year = ? ORDER BY s.month, s.priority DESC, o.last_observed_at_utc_ms DESC",
             turso::params![provider, dataset, i64::from(year)],
         )
         .await?;
@@ -89,6 +93,8 @@ pub(crate) async fn artifacts_for_year(
             priority: i32::try_from(row.get::<Option<i64>>(6)?.unwrap_or_default())
                 .map_err(|_| DownloadError::NumericOverflow("source priority"))?,
             final_url: row.get(14)?,
+            canonical_url: row.get(17)?,
+            accepted_at_utc_ms: None,
             content_disposition: row.get(15)?,
             artifact: ArtifactRef {
                 digest,

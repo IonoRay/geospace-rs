@@ -14,6 +14,8 @@ mod model;
 mod model_error;
 mod model_evaluate;
 mod model_types;
+#[cfg(feature = "omni")]
+mod omni;
 mod output;
 
 /// Sequential production JSONL processor used by the CLI and its offline example.
@@ -42,6 +44,12 @@ pub enum ExecuteStatus {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Download OMNI CDF files or read accepted files without networking.
+    #[cfg(feature = "omni")]
+    Omni {
+        #[command(subcommand)]
+        command: omni::OmniCommand,
+    },
     /// Initialize or inspect local data infrastructure.
     Data {
         #[command(subcommand)]
@@ -69,6 +77,11 @@ enum Command {
 /// model execution, or JSON serialization fails.
 pub async fn execute(cli: Cli) -> Result<ExecuteStatus, GeospaceError> {
     let status = match cli.command {
+        #[cfg(feature = "omni")]
+        Command::Omni { command } => {
+            omni::execute(cli.home.as_deref(), command).await?;
+            ExecuteStatus::Succeeded
+        }
         Command::Data { command } => {
             data::execute(cli.home.as_deref(), command).await?;
             ExecuteStatus::Succeeded
