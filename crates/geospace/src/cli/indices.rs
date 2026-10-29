@@ -10,6 +10,11 @@ use super::output;
 
 #[derive(Debug, Subcommand)]
 pub(super) enum IndicesCommand {
+    /// Download or read native Hp30/ap30, Hp60/ap60 and PCN time series.
+    Activity {
+        #[command(subcommand)]
+        command: super::indices_activity::ActivityCommand,
+    },
     /// Maintain requested fields over a UTC half-open interval.
     SyncRange(super::indices_range::RangeArgs),
     /// Query upstream metadata without downloading complete bodies.
@@ -25,7 +30,7 @@ pub(super) enum IndicesCommand {
         #[arg(long)]
         force: bool,
     },
-    /// Query upstream, download changes, validate, and import yearly databases.
+    /// Sync all core indices, Hpo, PCN and OMNI for a UTC calendar year.
     Sync {
         #[arg(long)]
         year: u16,
@@ -71,8 +76,17 @@ pub(super) async fn execute(
     home: Option<&Path>,
     command: IndicesCommand,
 ) -> Result<(), GeospaceError> {
+    if let IndicesCommand::Activity { command } = command {
+        return super::indices_activity::execute(home, command).await;
+    }
+    if let IndicesCommand::Sync { year, policy } = command {
+        return super::indices_all::execute(home, year, policy).await;
+    }
     let store = IndexStore::open(home).await?;
     match command {
+        IndicesCommand::Activity { .. } => {
+            unreachable!("activity command handled before IndexStore initialization")
+        }
         IndicesCommand::SyncRange(args) => {
             super::indices_range::execute(&store, args).await?;
         }
@@ -85,9 +99,7 @@ pub(super) async fn execute(
             };
             output::json(&report)?;
         }
-        IndicesCommand::Sync { year, policy } => {
-            output::json(&store.sync_year(year, policy.into()).await?)?;
-        }
+        IndicesCommand::Sync { .. } => unreachable!("all-product sync handled above"),
         IndicesCommand::Ensure { year } => output::json(&store.ensure_year(year).await?)?,
         IndicesCommand::Verify { year } => output::json(&store.verify_year(year).await?)?,
         IndicesCommand::Reindex { year } => output::json(&store.reindex_year(year).await?)?,

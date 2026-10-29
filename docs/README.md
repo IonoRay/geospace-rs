@@ -12,6 +12,7 @@ in `flake.nix`. Start with the [project README](../README.md).
 | [CLI model records](cli-models.md) | JSON/JSONL requests, isolated offline fixtures, result records, and exit codes |
 | [Data maintenance](data-maintenance.md) | Home selection, offline/online policies, synchronization, coverage gaps, and recovery |
 | [OMNI CDF data](omni.md) | HRO2/HRO monthly downloads, offline solar-wind/IMF reads, provenance, and real-data checks |
+| [Activity indices](indices-activity.md) | Native Hp30/ap30, Hp60/ap60, PCN, minute OMNI indices, and deferred PCS access |
 
 ## Implementation and evidence
 

@@ -197,22 +197,29 @@ geospace indices read --at "2020-07-01T12:00:00 UTC"
 
 ## Online year sync
 
-VS Code 的 `Geospace Data: sync all indices for year (online)` 会先通过 Nix 构建仅含
-CLI 和 indices 的 `target/debug/geospace`，再提示输入 UTC 年份并执行：
+VS Code 的 `Geospace Data: sync all indices for year (online)` 会先通过 Nix 构建
+`cli,indices` 的 `target/debug/geospace`（集成层 `indices` feature 包含 `omni`），再提示输入 UTC 年份并执行：
 
 ```text
 geospace --home <输入目录> indices sync --year <输入年份>
 ```
 
-该命令按顺序同步 `kp-ap-f107`、`dst`、`ae`、`iri-ig-rz` 和 `iri-apf107`，完成
-远端检查、必要下载、校验和年度数据库导入。launch 会要求输入写入目录；该目录优先于
+该 CLI 命令依次同步核心指数组（`kp-ap-f107`、`dst`、`ae`、`iri-ig-rz`、`iri-apf107`）、
+`hp30`、`hp60`、`pcn` 和 `omni`，区间为 UTC `[YEAR-01-01,(YEAR+1)-01-01)`。
+OMNI 使用一分钟 CDF，默认 HRO2、缺文件时尝试 HRO，并保留禁止降级规则；PCN 保留成熟度优先规则。PCS 未接入。
+核心组继续导入年度数据库，活动指数和 OMNI 保留各自原生文件存储方式。
+一个组失败后继续其他组，stdout 返回含 `products` 和 `failed_groups` 的汇总 JSON；任一组失败最终返回非零状态。
+`always-check` 检查上游，`force-download` 强制正文下载，`offline` 对所有组仅使用本地数据。
+文件成功接受不保证物理变量完整，需检查各组来源和覆盖报告，尤其是尚未结束的年份。
+launch 会要求输入写入目录；该目录优先于
 `IONORAY_HOME`，未设置两者时才使用 `~/.ionoray/geospace-rs`。它不会使用离线 example
 的临时目录。运行完成后应检查 JSON 中的
-下载、导入、变更和 `cache_files_used`，不能仅凭进程成功断言所有正文均来自远端。
+各组的下载、导入、变更和核心组的 `cache_files_used`，不能仅凭进程成功断言所有正文均来自远端。
 
 这个 launch 明确允许联网并修改上述数据目录，因此 `stopOnEntry=false`，启动后直接执行。
-需要只补缺口时改用 `indices ensure --year YEAR`；需要强制重下时使用
-`indices sync --year YEAR --policy force-download` 或 `indices repair --year YEAR`。
+需要全部产品强制重下时使用 `indices sync --year YEAR --policy force-download`。
+`indices ensure`、`indices repair`、库方法 `IndexStore::sync_year` 及维护 schedule 仍仅处理原有核心指数组；本次统一入口是 CLI `indices sync`。
+Hpo/PCN 和 OMNI 的两个独立在线下载 launch 已移除；日期范围、产品选择仍可通过各自正式 CLI 完成，离线读取 launch 保留。
 
 The offline Rust entry point is `crates/geospace/examples/indices_offline.rs`.
 It uses an isolated temporary home, prepares bounded ranges, then prints typed

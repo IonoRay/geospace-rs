@@ -31,7 +31,16 @@ pub(super) async fn execute(
             #[cfg(feature = "indices")]
             {
                 let root = Store::open_root(home)?;
-                let scopes = ["dst", "ae", "kp-ap-f107", "iri-ig-rz", "iri-apf107"];
+                let scopes = [
+                    "dst",
+                    "ae",
+                    "kp-ap-f107",
+                    "iri-ig-rz",
+                    "iri-apf107",
+                    "hp30",
+                    "hp60",
+                    "pcn",
+                ];
                 let catalogs: Vec<_> = scopes
                     .iter()
                     .map(|scope| {

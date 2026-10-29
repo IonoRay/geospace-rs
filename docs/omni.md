@@ -97,12 +97,15 @@ nix develop .#default --command \
 | 太阳风 | `flow_speed`, `Vx`, `Vy`, `Vz`, `proton_density`, `T`, `Pressure` |
 | 源卫星与统计 | `IMF`, `PLS`, `IMF_PTS`, `PLS_PTS`, `percent_interp` |
 | 传播与不确定度信息 | `Timeshift`, `RMS_Timeshift`, `RMS_phase`, `Time_btwn_obs`, `RMS_SD_B`, `RMS_SD_fld_vec` |
+| 地面分钟指数 | `AE_INDEX`, `AL_INDEX`, `AU_INDEX`, `SYM_D`, `SYM_H`, `ASY_D`, `ASY_H` |
 
 物理变量的单位直接来自 CDF，例如速度 km/s、密度 cm⁻³、磁场 nT、动压 nPa。源卫星编号等属性可能没有 `UNITS`，不为其虚构单位。速度分量使用源产品的 GSE 约定；不做坐标变换，也不重新计算动压。
 
 每行包含实际产品、原始文件名、SHA-256、零起始 `record_index`、原始 `cdf_epoch_ms` 与 UTC。`raw` 保留有限原始数值，包括填充值；`value` 仅在填充值、非有限值或无记录时为 null，并提供 `missing` 原因。超出上游有效范围的有限非填充值仍保留，同时标记 `outside_valid_range`。原始文件保存非有限值及全部未导出变量。
 
-高分辨率 OMNI 已传播至地球弓激波鼻端，不再次平移。保留上游质量信息，不新增筛选、插值、平滑或重采样。覆盖报告区分 UTC 分钟记录缺口、各变量缺测及有效范围异常；记录完整不代表太阳风连续有效。
+高分辨率 OMNI 的太阳风／IMF 已传播至地球弓激波鼻端，不再次平移。七个地磁指数保留地面 UTC，变量元数据明确标记 `time_reference: ground_utc`；太阳风等字段标记 `omni_bow_shock_nose`。HRO2 产品名不代表地面指数为最终值，指数成熟度不从该名称推断，原始变量属性保留。保留上游质量信息，不新增筛选、插值、平滑或重采样。覆盖报告区分 UTC 分钟记录缺口、各变量缺测及有效范围异常；记录完整不代表太阳风连续有效。
+
+分钟 AE 使用 `AE_INDEX`，与现有 `indices` 小时 AE 接口分开；SYM-H 与 Dst 分别保留名称和来源，不互相替换。Hpo 和 PCN 的其他原生源见[活动指数指南](indices-activity.md)。已有月 CDF 无需为这些新增变量重新下载，更新程序后重新 `omni read` 即可。
 
 ## cdf-rs 能力边界
 
@@ -149,9 +152,7 @@ nix develop .#default --command \
 
 VS Code 提供 `Geospace OMNI: read May 2024 (offline)`，输入包含已下载 `omni/` 子目录的父数据根目录。建议断点：`parse.rs` 的 `collect`（`index.first_vec`、`block.records`、`values`），`read.rs` 的 `OmniStore::read`（`record_index`、`product`、`sample`）。CLI 检查与编辑器断点检查分别记录，配置存在不代表断点已验证。
 
-VS Code「运行和调试」新增 `Geospace OMNI: download date range (online)`。按 F5 后输入／选择数据根目录、起始 UTC、结束 UTC、分辨率、产品和是否强制重下。预构建复用 `geospace: build OMNI CLI`；构建依赖离线，程序下载数据时联网。
-
-默认窗口为 `[2024-05-10T00:00:00Z,2024-05-13T00:00:00Z)`，即 5 月 10—12 日；默认产品 `auto`、强制重下 `false`。数据根目录应填写实际 `IONORAY_HOME`，配置默认值为 `~/.ionoray/geospace-rs`，程序写入其 `omni/` 子目录。显式输入的目录优先于环境变量。
+在线下载统一使用 `Geospace Data: sync all indices for year (online)`，输入数据根目录和 UTC 年份；OMNI 同步整个日历年，默认 `auto`（HRO2 优先）及一分钟分辨率。独立在线下载 launch 已移除，离线读取 launch 保留。日期范围和显式产品选择仍使用本指南的 `omni download` CLI。数据写入所选父目录的 `omni/` 子目录。
 
 分辨率当前仅提供 `1min`，对应 CLI `--cadence 1min`；尚未接入 5 分钟或小时数据，CLI 会拒绝这些值。强制选项对应 `--force=false` / `--force=true`，原有不带值的 `--force` 仍表示强制重下。`false` 仍会检查 HRO2 是否出现或更新。
 

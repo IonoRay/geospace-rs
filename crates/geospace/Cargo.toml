@@ -44,7 +44,7 @@ required-features = ["indices"]
 
 [features]
 default = []
-indices = ["dep:ionoray-indices", "dep:ionoray-store"]
+indices = ["dep:ionoray-indices", "dep:ionoray-store", "omni"]
 omni = ["dep:ionoray-omni", "dep:ionoray-store"]
 igrf = ["dep:ionoray-igrf"]
 iri = ["dep:ionoray-iri"]

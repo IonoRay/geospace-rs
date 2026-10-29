@@ -91,7 +91,8 @@ The direct example supplies every driver and does not open an index store.
 | Python functions, Session, and Prepared objects | `ionoray_geospace`, `examples/driver_scenarios.py` | [Python models](docs/python-models.md) |
 | Process JSON or JSONL requests | `geospace model run` / `model batch` | [CLI records](docs/cli-models.md) |
 | Inspect or maintain Kp/ap/Ap, F10.7, IRI indices, Dst, and AE | `indices_offline`, `indices_maintenance`, `geospace indices` | [Data maintenance](docs/data-maintenance.md) |
-| Download OMNI CDF and read solar wind / IMF offline | `geospace omni download` / `geospace omni read` (`cli,omni`) | [OMNI data](docs/omni.md) |
+| Download OMNI CDF and read solar wind / IMF and minute AE/AL/AU/SYM/ASY | `geospace omni download` / `geospace omni read` (`cli,omni`) | [OMNI data](docs/omni.md) |
+| Download/read native Hp30/ap30, Hp60/ap60 and PCN | `geospace indices activity download` / `read` (`cli,indices`) | [Activity indices](docs/indices-activity.md) |
 
 Automatic-driver and scenario examples use isolated temporary homes and a fixed
 offline snapshot. Missing values remain explicit errors or `None`; they are not

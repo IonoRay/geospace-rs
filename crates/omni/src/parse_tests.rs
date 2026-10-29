@@ -46,11 +46,18 @@ fn official_hro_matches_independent_ascii() {
             ("proton_density", 25, 0.006),
             ("T", 26, 0.51),
             ("Pressure", 27, 0.006),
+            ("AE_INDEX", 37, 0.01),
+            ("AL_INDEX", 38, 0.01),
+            ("AU_INDEX", 39, 0.01),
+            ("SYM_D", 40, 0.01),
+            ("SYM_H", 41, 0.01),
+            ("ASY_D", 42, 0.01),
+            ("ASY_H", 43, 0.01),
         ] {
             let variable = variable(&cdf, name).unwrap();
             let raw = scalar_values(variable).unwrap()[index];
             let actual = sample(&cdf, variable, raw);
-            if index == 12_960 {
+            if index == 12_960 && column < 37 {
                 assert_eq!(actual.missing, Some("fill_value"));
             } else {
                 assert!(
@@ -60,6 +67,12 @@ fn official_hro_matches_independent_ascii() {
                 );
             }
         }
+    }
+    let metadata = metadata(&cdf).unwrap();
+    for name in INDEX_VARIABLES {
+        let variable = metadata.iter().find(|v| v.name == *name).unwrap();
+        assert_eq!(variable.time_reference, "ground_utc");
+        assert_eq!(variable.attributes["UNITS"], ["nT"]);
     }
 }
 #[test]

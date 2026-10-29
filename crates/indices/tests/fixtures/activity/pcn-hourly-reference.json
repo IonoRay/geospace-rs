@@ -1,0 +1,21 @@
+{
+  "source": "https://isgi.unistra.fr/data_plot.php",
+  "request": {
+    "ddown": "plot",
+    "chdata[]": "PC",
+    "StartTime": "2024-05-10",
+    "EndTime": "2024-05-11"
+  },
+  "series": "Definitive PCN",
+  "timestamp_semantics": "hour midpoint UTC",
+  "values": [
+    [
+      1715301000000,
+      1.11
+    ],
+    [
+      1715333400000,
+      -0.07
+    ]
+  ]
+}

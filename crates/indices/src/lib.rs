@@ -1,5 +1,7 @@
-//! Independently usable Kp, Ap, F10.7, Dst, AE, and IRI driver data contracts.
+//! Independent Kp, Ap, F10.7, Dst, hourly AE, IRI, Hpo/apo and PCN data.
 
+/// Native Hpo/apo and polar-cap index download and offline time series.
+pub mod activity;
 mod cleanup;
 mod coverage;
 mod database;

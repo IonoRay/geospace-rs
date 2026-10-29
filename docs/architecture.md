@@ -14,7 +14,11 @@ ionoray-geospace
 
 - `ionoray-core` owns stable time, position, unit, identifier, and provenance types.
 - `ionoray-store` owns Turso databases, the local layout, schema rebuilds, and CAS/download logic.
-- `ionoray-indices` is an independent Kp/Ap/F10.7/Dst/AE data product.
+- `ionoray-indices` is an independent Kp/Ap/F10.7/Dst/hourly-AE/IRI data product.
+  Its `activity` module adds native Hpo/apo and PCN streams through the same scoped
+  raw catalogs/CAS. These source files are parsed on read without duplicating
+  their entire time series in new yearly databases. Old hourly AE contracts are
+  unchanged; minute AE/AL/AU/SYM/ASY remain explicitly identified OMNI variables.
 - `ionoray-omni` is an independent one-minute HRO2/HRO CDF data product. It
   uses cdf-rs directly, and reuses the scoped store under `<home>/omni/`.
   Parsed time series are read from immutable CDFs, not duplicated in Turso.
@@ -94,6 +98,10 @@ or new directory explicitly; this boundary performs no migration, removal,
 copying, or duplicate download.
 
 `IndexStore::init` and `geospace data init` initialize the indices root.
+The facade's `indices` feature also enables `omni` so CLI `indices sync --year`
+always includes core indices, Hp30/Hp60, PCN and OMNI. This orchestration lives
+in the CLI; `IndexStore::sync_year` retains its core-index contract, and the
+underlying data crates remain independent.
 `Store::open_root` creates no global catalog; scoped catalogs open lazily.
 Every dependent operation calls the same initialization path, so init is never a
 required separate step. Year databases are created lazily.

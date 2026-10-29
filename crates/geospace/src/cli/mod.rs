@@ -8,6 +8,10 @@ mod data;
 #[cfg(feature = "indices")]
 mod indices;
 #[cfg(feature = "indices")]
+mod indices_activity;
+#[cfg(feature = "indices")]
+mod indices_all;
+#[cfg(feature = "indices")]
 mod indices_range;
 mod model;
 #[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]

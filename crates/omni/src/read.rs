@@ -112,7 +112,7 @@ impl OmniStore {
                 missing_time_ranges_utc_ms: missing_times,
                 variables,
             },
-            propagation: "OMNI upstream time-shifted to Earth's bow-shock nose; no additional shift applied",
+            propagation: "Solar wind/IMF use OMNI bow-shock-nose time; geomagnetic indices retain ground UTC; no additional shift applied",
         })
     }
 }

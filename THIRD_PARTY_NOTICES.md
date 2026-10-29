@@ -24,6 +24,21 @@ review their notices when distributing compiled artifacts.
   Data is not relicensed as original IonoRay software. HRO2 and HRO are distinct
   products, not interchangeable filename revisions.
 
+## Hpo/apo and PCN activity indices
+
+- GFZ [Hp30/ap30 and Hp60/ap60](https://kp.gfz.de/hp30-hp60/daten), Hpo v3.0,
+  https://doi.org/10.5880/Hpo.0003 . The ASCII headers declare CC BY 4.0 and
+  retain the GFZ data publication and methodology references. The reserved `D`
+  column is not interpreted as a publication-quality flag.
+- DTU Space [PCN index](https://doi.org/10.11581/DTU:00000057), CC BY 4.0;
+  the [official provider page](https://www.space.dtu.dk/english/research-divisions/geomagnetism-and-geospace/research-areas/Ground-based-magnetometry-instrumentration-infrastructure/PCN-index)
+  links definitive, provisional and quicklook archives. The selected edition
+  and original file header are retained; negative PCN is not discarded.
+- Small real-file extracts and independent reference values are documented in
+  [fixture provenance](crates/indices/tests/fixtures/activity/README.md).
+- PCS is excluded from this integration at the user's request. ISGI service
+  application and source-specific terms are linked in the activity guide.
+
 ## IGRF-14
 
 - Material: `crates/models/igrf/data/igrf14coeffs.txt`, official IAGA coefficients

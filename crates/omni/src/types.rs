@@ -33,6 +33,10 @@ pub struct VariableMetadata {
     pub name: String,
     /// All CDF variable attributes, represented as scalar strings.
     pub attributes: BTreeMap<String, Vec<String>>,
+    /// Ground indices retain UTC; solar-wind samples use OMNI's propagated time.
+    pub time_reference: &'static str,
+    /// Quality interpretation; HRO2 is not an index-maturity label.
+    pub quality: &'static str,
 }
 
 /// One observed scalar and its validity, without clipping or interpolation.

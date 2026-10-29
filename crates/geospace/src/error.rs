@@ -23,6 +23,18 @@ pub enum GeospaceError {
     #[cfg(feature = "indices")]
     #[error(transparent)]
     Indices(#[from] ionoray_indices::IndexError),
+    /// Additional activity-product request failed.
+    #[cfg(feature = "indices")]
+    #[error(transparent)]
+    Activity(#[from] ionoray_indices::activity::ActivityError),
+    /// A batch attempted every selected activity dataset but had failures.
+    #[cfg(feature = "indices")]
+    #[error("{0} activity dataset operations failed; inspect the per-dataset reports")]
+    ActivityBatchFailures(usize),
+    /// Annual synchronization attempted every product group but had failures.
+    #[cfg(feature = "indices")]
+    #[error("{0} annual product groups failed; inspect the per-group reports")]
+    AnnualBatchFailures(usize),
     /// OMNI download or offline CDF read failed.
     #[cfg(feature = "omni")]
     #[error(transparent)]

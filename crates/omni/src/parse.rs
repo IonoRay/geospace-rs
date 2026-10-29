@@ -48,6 +48,17 @@ pub(crate) const VARIABLES: &[&str] = &[
     "Time_btwn_obs",
     "RMS_SD_B",
     "RMS_SD_fld_vec",
+    "AE_INDEX",
+    "AL_INDEX",
+    "AU_INDEX",
+    "SYM_D",
+    "SYM_H",
+    "ASY_D",
+    "ASY_H",
+];
+
+pub(crate) const INDEX_VARIABLES: &[&str] = &[
+    "AE_INDEX", "AL_INDEX", "AU_INDEX", "SYM_D", "SYM_H", "ASY_D", "ASY_H",
 ];
 
 pub(crate) fn decode(path: &Path, product: OmniProduct, month: Month) -> Result<Cdf, OmniError> {
@@ -139,7 +150,9 @@ pub(crate) fn decode(path: &Path, product: OmniProduct, month: Month) -> Result<
         {
             return Err(invalid(&format!("unexpected time dependency for {name}")));
         }
-        if VARIABLES[..13].contains(&name) && attribute(&cdf, variable, "UNITS").is_none() {
+        if (VARIABLES[..13].contains(&name) || INDEX_VARIABLES.contains(&name))
+            && attribute(&cdf, variable, "UNITS").is_none()
+        {
             return Err(invalid(&format!("missing UNITS for {name}")));
         }
     }
@@ -271,6 +284,12 @@ pub(crate) fn metadata(cdf: &Cdf) -> Result<Vec<VariableMetadata>, OmniError> {
             Ok(VariableMetadata {
                 name: name.into(),
                 attributes,
+                time_reference: if INDEX_VARIABLES.contains(&name) {
+                    "ground_utc"
+                } else {
+                    "omni_bow_shock_nose"
+                },
+                quality: "as_distributed_by_omni_not_inferred_from_product_name",
             })
         })
         .collect()
