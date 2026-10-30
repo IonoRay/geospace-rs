@@ -1,6 +1,7 @@
 use ionoray_core::Sha256Digest;
 use ionoray_store::{ArtifactRef, DownloadDisposition, DownloadOutcome};
 use tempfile::TempDir;
+use tracing::instrument::WithSubscriber;
 
 use super::*;
 use crate::{IndexFileOrigin, download::cache};
@@ -30,6 +31,13 @@ async fn remote_failure_falls_back_to_valid_bundled_source() {
 #[tokio::test]
 async fn failed_month_does_not_stop_later_interval_source() {
     let temporary = TempDir::new().unwrap();
+    let log_path = temporary.path().join("progress.jsonl");
+    let log_file = std::fs::File::create(&log_path).unwrap();
+    let subscriber = tracing_subscriber::fmt()
+        .json()
+        .with_env_filter("info")
+        .with_writer(move || log_file.try_clone().unwrap())
+        .finish();
     let store = ionoray_store::Store::open_root(Some(temporary.path())).unwrap();
     let failed = SourceFile {
         dataset: crate::IndexDataset::Dst,
@@ -50,8 +58,22 @@ async fn failed_month_does_not_stop_later_interval_source() {
         CheckMode::Metadata,
         &[],
     )
+    .with_subscriber(subscriber)
     .await
     .unwrap();
+    let events: Vec<serde_json::Value> = std::fs::read_to_string(log_path)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    let progress = events
+        .iter()
+        .find(|e| e["fields"]["message"] == "index source progress")
+        .unwrap();
+    assert_eq!(progress["fields"]["completed_sources"], 2);
+    assert_eq!(progress["fields"]["total_sources"], 2);
+    assert_eq!(progress["fields"]["remaining_sources"], 0);
+    assert_eq!(progress["fields"]["failure_details"], 2);
     assert_eq!(report.failures.len(), 2);
     assert!(
         report

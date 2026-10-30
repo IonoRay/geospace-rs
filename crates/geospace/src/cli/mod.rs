@@ -13,6 +13,8 @@ mod indices_activity;
 mod indices_all;
 #[cfg(feature = "indices")]
 mod indices_range;
+#[cfg(feature = "indices")]
+mod indices_selection;
 mod model;
 #[cfg(any(feature = "igrf", feature = "iri", feature = "hwm", feature = "msis"))]
 mod model_error;

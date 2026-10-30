@@ -33,8 +33,8 @@ pub enum GeospaceError {
     ActivityBatchFailures(usize),
     /// Annual synchronization attempted every product group but had failures.
     #[cfg(feature = "indices")]
-    #[error("{0} annual product groups failed; inspect the per-group reports")]
-    AnnualBatchFailures(usize),
+    #[error("annual synchronization failed: {0}")]
+    AnnualBatchFailures(String),
     /// OMNI download or offline CDF read failed.
     #[cfg(feature = "omni")]
     #[error(transparent)]

@@ -197,18 +197,47 @@ geospace indices read --at "2020-07-01T12:00:00 UTC"
 
 ## Online year sync
 
+Dst 的 WDC-like 月文件允许在每日记录后出现一条官方 `[Created at ...]`
+生成时间说明（可带空行）；该说明不作为观测。未知文本、重复说明及说明后的非空内容仍会失败。
+真实 2024 年 5 月文件及哈希见 `crates/indices/tests/fixtures/dst/README.md`。
+
 VS Code 的 `Geospace Data: sync all indices for year (online)` 会先通过 Nix 构建
 `cli,indices` 的 `target/debug/geospace`（集成层 `indices` feature 包含 `omni`），再提示输入 UTC 年份并执行：
 
 ```text
-geospace --home <输入目录> indices sync --year <输入年份>
+geospace --home <输入目录> indices sync --dataset <选择数据集> --year <输入年份>
 ```
 
-该 CLI 命令依次同步核心指数组（`kp-ap-f107`、`dst`、`ae`、`iri-ig-rz`、`iri-apf107`）、
+`--dataset` 默认为 `all`，launch 使用 `pickString` 下拉选择，随后输入 UTC 年份。
+可选值为 `all`、`kp-ap-f107`、`dst`、`ae`、`iri-ig-rz`、`iri-apf107`、`hp30`、`hp60`、`pcn`、`omni`。
+例如 `geospace --home <输入目录> indices sync --dataset dst --year 2025` 只同步 2025 年 Dst；
+单选核心数据集沿用原年度同步的校验和导入逻辑，不执行其他核心数据集。
+GFZ 的 `kp-ap-f107` 是联合源，Hpo 的两个选项分别包含对应的 ap30/ap60，不能在这里拆成单个物理变量。
+报告顶层 `dataset` 记录选择；单选只产生一个产品结果，进度为 `1/1`。
+
+`all` 依次同步核心指数组（`kp-ap-f107`、`dst`、`ae`、`iri-ig-rz`、`iri-apf107`）、
 `hp30`、`hp60`、`pcn` 和 `omni`，区间为 UTC `[YEAR-01-01,(YEAR+1)-01-01)`。
 OMNI 使用一分钟 CDF，默认 HRO2、缺文件时尝试 HRO，并保留禁止降级规则；PCN 保留成熟度优先规则。PCS 未接入。
 核心组继续导入年度数据库，活动指数和 OMNI 保留各自原生文件存储方式。
 一个组失败后继续其他组，stdout 返回含 `products` 和 `failed_groups` 的汇总 JSON；任一组失败最终返回非零状态。
+日志逐一记录核心数据集和产品组的 `dataset`、`status`，失败时附 `error`。
+运行开始记录实际 `home`、年份、策略和所选产品组（all 为 5 组，单选为 1 组）；组开始记录 `group_index/total_groups`，
+组结束及年度结束记录耗时。核心组另逐数据集记录开始、结束和处理计数。
+核心处理区分本地恢复、下载校验和导入阶段：本地恢复按目录条目计数（另列范围外跳过量），
+下载按物理源分区计数（滚动源为一项），导入按准备好的文件计数。
+Hpo/PCN 按日期槽位计数，`checked_sources` 才是实际检查过的不同源数量；
+OMNI 按月计数，月开始输出当前年月，月结束输出源记录数和所选文件大小。
+这些完成计数包含已处理的失败项，不等于下载成功数。核心和活动指数在处理边界约每 5 秒
+输出一次进度，并输出阶段末尾结果；这是边界节流，不是心跳，长请求中不额外输出。
+核心结束列出 `bodies_downloaded`、`bytes_downloaded`、`records_imported`、
+`releases_created/reused` 和缓存使用量。活动指数结束列出所选文件数、时间覆盖记录数、
+预期记录数及缺口；OMNI 列出所选文件数、源时间记录数和缺失候选数。
+导入记录不是净新增有效观测，所选文件大小不是传输字节，缺失候选也不是失败月份数；
+不把这些量合并成总百分比或预计剩余时间。
+结束时再次输出成功和失败名称；最终 CLI 错误包含失败原因，核心组错误还列出组内成功和失败的数据集。
+上述 VS Code launch 将日志追加到工作区 `logs/indices-sync.ndjson`（已忽略 Git），
+可按 `run_id` 区分运行。普通 CLI 默认不保存文件日志，可设置
+`IONORAY_LOG_FILE=logs/indices-sync.ndjson` 使用同一机制；stdout JSON 仍独立输出。
 `always-check` 检查上游，`force-download` 强制正文下载，`offline` 对所有组仅使用本地数据。
 文件成功接受不保证物理变量完整，需检查各组来源和覆盖报告，尤其是尚未结束的年份。
 launch 会要求输入写入目录；该目录优先于

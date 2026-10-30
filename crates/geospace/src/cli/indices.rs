@@ -30,10 +30,12 @@ pub(super) enum IndicesCommand {
         #[arg(long)]
         force: bool,
     },
-    /// Sync all core indices, Hpo, PCN and OMNI for a UTC calendar year.
+    /// Sync all or one selected dataset for a UTC calendar year.
     Sync {
         #[arg(long)]
         year: u16,
+        #[arg(long, value_enum, default_value_t = super::indices_selection::AnnualDataset::All)]
+        dataset: super::indices_selection::AnnualDataset,
         #[arg(long, value_enum, default_value_t = CliSyncPolicy::AlwaysCheck)]
         policy: CliSyncPolicy,
     },
@@ -79,8 +81,13 @@ pub(super) async fn execute(
     if let IndicesCommand::Activity { command } = command {
         return super::indices_activity::execute(home, command).await;
     }
-    if let IndicesCommand::Sync { year, policy } = command {
-        return super::indices_all::execute(home, year, policy).await;
+    if let IndicesCommand::Sync {
+        year,
+        policy,
+        dataset,
+    } = command
+    {
+        return super::indices_all::execute(home, year, policy, dataset).await;
     }
     let store = IndexStore::open(home).await?;
     match command {

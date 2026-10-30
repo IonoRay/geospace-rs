@@ -9,7 +9,9 @@ use std::{
 use tempfile::TempDir;
 use url::Url;
 
-fn server(responses: Vec<String>) -> (Url, mpsc::Receiver<String>, thread::JoinHandle<()>) {
+pub(super) fn server(
+    responses: Vec<String>,
+) -> (Url, mpsc::Receiver<String>, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
     let (tx, rx) = mpsc::channel();

@@ -182,6 +182,8 @@
         "${input:indicesHome}",
         "indices",
         "sync",
+        "--dataset",
+        "${input:indicesSyncDataset}",
         "--year",
         "${input:indicesYear}"
       ],
@@ -190,7 +192,8 @@
       "stopOnEntry": false,
       "preLaunchTask": "geospace: build indices CLI",
       "env": {
-        "RUST_BACKTRACE": "1"
+        "RUST_BACKTRACE": "1",
+        "IONORAY_LOG_FILE": "${workspaceFolder}/logs/indices-sync.ndjson"
       }
     },
     {
@@ -258,6 +261,13 @@
     }
   ],
   "inputs": [
+    {
+      "id": "indicesSyncDataset",
+      "type": "pickString",
+      "options": ["all", "kp-ap-f107", "dst", "ae", "iri-ig-rz", "iri-apf107", "hp30", "hp60", "pcn", "omni"],
+      "default": "all",
+      "description": "年度同步数据集：all 更新全部，其他选项只更新所选数据集；随后选择 UTC 年份。kp-ap-f107 为 GFZ 联合源，hp30/hp60 分别包含 ap30/ap60"
+    },
     {
       "id": "activityHome",
       "type": "promptString",

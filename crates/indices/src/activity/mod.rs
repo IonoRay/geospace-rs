@@ -2,6 +2,7 @@
 
 mod error;
 mod parse;
+mod progress;
 mod range;
 mod read;
 mod source;

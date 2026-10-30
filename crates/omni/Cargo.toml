@@ -16,9 +16,11 @@ ionoray-store.workspace = true
 serde.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
+tracing.workspace = true
 url.workspace = true
 
 [dev-dependencies]
+tracing-subscriber.workspace = true
 tempfile.workspace = true
 tokio.workspace = true
 serde_json.workspace = true

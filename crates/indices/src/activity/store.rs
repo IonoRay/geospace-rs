@@ -50,27 +50,30 @@ impl ActivityStore {
         force: bool,
         slots: Vec<source::Slot>,
     ) -> Result<ActivityReport, ActivityError> {
+        let started = std::time::Instant::now();
+        let mut last_progress = started;
+        let total_dates = slots.len();
+        super::progress::start(dataset, total_dates);
         let scoped = self.root.scoped(StoreScope::new(dataset.name())?).await?;
         let _guard = scoped.try_acquire_sync_lock()?;
         let mut accepted = accepted(&scoped, dataset, range).await?;
         let mut queried = BTreeSet::new();
         let mut states = BTreeMap::new();
         let mut unavailable = Vec::new();
-        for (_, candidates) in &slots {
+        let mode = if force {
+            CheckMode::ForceContent
+        } else {
+            CheckMode::Metadata
+        };
+        for (index, (date, candidates)) in slots.iter().enumerate() {
+            if index == 0 || last_progress.elapsed().as_secs() >= 5 {
+                super::progress::date_start(dataset, *date, index, total_dates);
+                last_progress = std::time::Instant::now();
+            }
             for candidate in candidates {
                 if queried.insert(candidate.id.clone()) {
                     let request = candidate.request(dataset)?;
-                    let outcome = scoped
-                        .downloads()?
-                        .check(
-                            &request,
-                            if force {
-                                CheckMode::ForceContent
-                            } else {
-                                CheckMode::Metadata
-                            },
-                        )
-                        .await;
+                    let outcome = scoped.downloads()?.check(&request, mode).await;
                     match outcome {
                         Ok(outcome) => {
                             validate_candidate(
@@ -124,15 +127,26 @@ impl ActivityStore {
                     break;
                 }
             }
+            let completed_dates = index + 1;
+            if completed_dates == total_dates || last_progress.elapsed().as_secs() >= 5 {
+                super::progress::date_end(
+                    dataset,
+                    *date,
+                    (completed_dates, total_dates),
+                    (queried.len(), unavailable.len()),
+                    started.elapsed().as_secs(),
+                );
+                last_progress = std::time::Instant::now();
+            }
         }
-        super::read::read_selected(
+        read_download_report(
             dataset,
             range,
             &slots,
             &accepted,
             states,
             unavailable,
-            |_| Ok(()),
+            started,
         )
     }
 
@@ -159,6 +173,28 @@ impl ActivityStore {
             emit,
         )
     }
+}
+
+fn read_download_report(
+    dataset: ActivityDataset,
+    range: ActivityRange,
+    slots: &[source::Slot],
+    accepted: &BTreeMap<String, ionoray_store::CatalogArtifact>,
+    states: BTreeMap<String, OnlineState>,
+    unavailable: Vec<String>,
+    started: std::time::Instant,
+) -> Result<ActivityReport, ActivityError> {
+    tracing::info!(
+        dataset = dataset.name(),
+        phase = "read-coverage",
+        "activity processing phase started"
+    );
+    let report =
+        super::read::read_selected(dataset, range, slots, accepted, states, unavailable, |_| {
+            Ok(())
+        })?;
+    super::progress::finish(&report, started.elapsed().as_secs());
+    Ok(report)
 }
 
 fn validate_candidate(

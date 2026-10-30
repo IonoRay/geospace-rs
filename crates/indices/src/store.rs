@@ -103,6 +103,19 @@ impl IndexStore {
         sync_year(&self.store, year, policy).await
     }
 
+    /// Synchronizes one core dataset for a UTC calendar year using the same
+    /// validation, import, and failure rules as [`Self::sync_year`].
+    /// # Errors
+    /// Returns [`IndexError`] when any phase for the selected dataset fails.
+    pub async fn sync_dataset_year(
+        &self,
+        dataset: crate::IndexDataset,
+        year: u16,
+        policy: SyncPolicy,
+    ) -> Result<SyncReport, IndexError> {
+        crate::maintenance::sync_selected(&self.store, year, policy, &[dataset]).await
+    }
+
     /// Guarantees local coverage, synchronizing only when local data is incomplete.
     ///
     /// # Errors

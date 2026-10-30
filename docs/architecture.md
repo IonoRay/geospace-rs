@@ -224,6 +224,10 @@ selects focused detail without changing code, for example
 and the file defaults to off. `IONORAY_LOG_FORMAT=auto|pretty|json` controls
 console serialization, while `IONORAY_LOG_COLOR=auto|always|never` controls ANSI
 color for console pretty output. `RUST_LOG` applies to both sinks.
+Download-check warnings carry `url`, `source_id`, `logical_name`, and `mode`
+directly on the event, so they remain visible when debug spans are filtered.
+When supplied by the caller, `provider`, `dataset`, `year`, `month`, `day`, and
+`edition` also appear; absent source metadata is omitted.
 
 ## Geophysical index sources
 

@@ -20,7 +20,7 @@ pub(crate) async fn sync_year(
 ) -> Result<SyncReport, IndexError> {
     sync_selected(store, year, policy, &datasets()).await
 }
-async fn sync_selected(
+pub(crate) async fn sync_selected(
     store: &StoreRoot,
     year: u16,
     policy: SyncPolicy,
@@ -38,9 +38,30 @@ async fn sync_selected(
     .map_err(|_| IndexError::InvalidNumber("year end"))?;
     let mut report = empty_report(year, policy);
     let mut failures = Vec::new();
+    let mut succeeded = Vec::new();
+    let mut failed = Vec::new();
     for dataset in selected {
+        let started = Instant::now();
+        tracing::info!(
+            dataset = dataset.scope_name(),
+            year,
+            ?policy,
+            "annual core dataset started"
+        );
+        let previous_failures = failures.len();
         match sync_dataset_interval(store, *dataset, start, end, policy).await {
             Ok(outcome) => {
+                tracing::info!(
+                    dataset = dataset.scope_name(),
+                    year,
+                    records_imported = outcome.report.records_imported,
+                    bodies_downloaded = outcome.report.summary.bodies_downloaded,
+                    bytes_downloaded = outcome.report.summary.bytes_downloaded,
+                    releases_created = outcome.report.summary.releases_created,
+                    releases_reused = outcome.report.summary.releases_reused,
+                    cache_files_used = outcome.report.cache_files_used,
+                    "core dataset processing counts"
+                );
                 report.records_imported += outcome.report.records_imported;
                 report.cache_files_used += outcome.report.cache_files_used;
                 add_summary(&mut report.summary, &outcome.report.summary);
@@ -66,13 +87,32 @@ async fn sync_selected(
                     failures.push(format!("Ae {year}: incomplete active hourly coverage; use indices sync-range --dataset ae to inspect the residual gaps"));
                 }
             }
-            Err(error) => failures.push(error.to_string()),
+            Err(error) => failures.push(format!("{}: {error}", dataset.scope_name())),
+        }
+        if failures.len() == previous_failures {
+            succeeded.push(dataset.scope_name());
+            tracing::info!(
+                dataset = dataset.scope_name(),
+                year,
+                status = "succeeded",
+                elapsed_secs = started.elapsed().as_secs(),
+                "annual core dataset finished"
+            );
+        } else {
+            failed.push(dataset.scope_name());
+            tracing::warn!(dataset = dataset.scope_name(), year, status = "failed", elapsed_secs = started.elapsed().as_secs(), error = %failures[previous_failures..].join("; "), "annual core dataset finished");
         }
     }
+    tracing::info!(year, ?succeeded, ?failed, "annual core datasets summary");
     if !failures.is_empty() {
         return Err(IndexError::AnnualSynchronization {
             year,
-            reason: failures.join("; "),
+            reason: format!(
+                "succeeded=[{}]; failed=[{}]; {}",
+                succeeded.join(", "),
+                failed.join(", "),
+                failures.join("; ")
+            ),
         });
     }
     Ok(report)
@@ -111,6 +151,12 @@ pub(crate) async fn sync_dataset_interval(
         .await?;
     report.run_id = run.run_id.clone();
     let mut failures = Vec::new();
+    tracing::info!(
+        dataset = dataset.scope_name(),
+        year,
+        phase = "local-recovery",
+        "index processing phase started"
+    );
     let (local, local_failures, cache_count, mut files) = crate::local_recovery::recover(
         store,
         &scoped,
@@ -126,6 +172,12 @@ pub(crate) async fn sync_dataset_interval(
     if policy == SyncPolicy::Offline {
         failures.extend(local_failures);
     } else {
+        tracing::info!(
+            dataset = dataset.scope_name(),
+            year,
+            phase = "download-validate",
+            "index processing phase started"
+        );
         let mut outcome = IntervalSyncOutcome {
             report,
             failures,
@@ -188,6 +240,12 @@ async fn import_remote(
         CheckMode::Metadata
     };
     let downloaded = download_dataset_interval_prepared(store, dataset, start, end, mode).await?;
+    tracing::info!(
+        dataset = dataset.scope_name(),
+        phase = "import",
+        total_files = downloaded.files.len(),
+        "index processing phase started"
+    );
     failures.extend(downloaded.failures);
     let prepared = PreparedYearDownloadReport {
         year: report.year,
@@ -200,7 +258,10 @@ async fn import_remote(
         &crate::sync_summary::summarize_downloads(&prepared.report()),
     );
     report.cache_files_used += prepared.report().cache_file_count();
-    for item in prepared.files {
+    let total_files = prepared.files.len();
+    let import_started = Instant::now();
+    let mut last_progress = Instant::now();
+    for (index, item) in prepared.files.into_iter().enumerate() {
         let source = sources
             .entry(item.file.source_id.clone())
             .or_insert((false, true));
@@ -224,6 +285,20 @@ async fn import_remote(
                     error.to_string(),
                 ));
             }
+        }
+        let completed = index + 1;
+        if completed == total_files || last_progress.elapsed().as_secs() >= 5 {
+            tracing::info!(
+                dataset = dataset.scope_name(),
+                phase = "import",
+                completed_files = completed,
+                total_files,
+                remaining_files = total_files - completed,
+                records_imported = report.records_imported,
+                elapsed_secs = import_started.elapsed().as_secs(),
+                "index import progress"
+            );
+            last_progress = Instant::now();
         }
     }
     for (source, (revision, complete)) in sources {
@@ -367,6 +442,7 @@ mod tests {
                 .to_string()
                 .contains("incomplete active hourly coverage")
         );
+        assert!(error.to_string().contains("succeeded=[]; failed=[ae]"));
         assert_eq!(required_partitions(IndexDataset::Ae, 2024), 366);
         assert_eq!(required_partitions(IndexDataset::Ae, 2023), 365);
         assert_eq!(required_partitions(IndexDataset::Ae, 2020), 12);

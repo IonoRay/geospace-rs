@@ -40,21 +40,20 @@ pub(crate) async fn recover(
             .accepted_artifacts_for_year(dataset.provider(), dataset.as_str(), year)
             .await?;
         let mut recovered = false;
-        for artifact in artifacts {
-            if let Some(month) = artifact.month {
-                let month_start = crate::parse::epoch_ms(year, month, artifact.day.unwrap_or(1), 0)
-                    .map_err(|_| IndexError::InvalidNumber("month"))?;
-                let month_end = if artifact.day.is_some() {
-                    Ok(month_start + 86_400_000)
-                } else if month == 12 {
-                    crate::parse::epoch_ms(year + 1, 1, 1, 0)
-                } else {
-                    crate::parse::epoch_ms(year, month + 1, 1, 0)
-                }
-                .map_err(|_| IndexError::InvalidNumber("month"))?;
-                if month_start >= end || month_end <= start {
-                    continue;
-                }
+        let total_catalog_entries = artifacts.len();
+        let started = std::time::Instant::now();
+        let mut last_progress = started;
+        tracing::info!(
+            dataset = dataset.scope_name(),
+            year,
+            total_catalog_entries,
+            "local recovery year started"
+        );
+        let mut skipped_entries = 0;
+        for (index, artifact) in artifacts.into_iter().enumerate() {
+            if outside_interval(&artifact, year, start, end)? {
+                skipped_entries += 1;
+                continue;
             }
             let source_status = sources
                 .entry(artifact.source_id.clone())
@@ -79,6 +78,19 @@ pub(crate) async fn recover(
                     ));
                 }
             }
+            let completed_entries = index + 1;
+            if completed_entries == total_catalog_entries || last_progress.elapsed().as_secs() >= 5
+            {
+                log_progress(
+                    dataset,
+                    year,
+                    &artifact,
+                    (completed_entries, total_catalog_entries, skipped_entries),
+                    total.records,
+                    started,
+                );
+                last_progress = std::time::Instant::now();
+            }
         }
         if !recovered && allow_cache {
             recover_cache(
@@ -92,6 +104,16 @@ pub(crate) async fn recover(
             )
             .await?;
         }
+        tracing::info!(
+            dataset = dataset.scope_name(),
+            year,
+            completed_entries = total_catalog_entries,
+            total_catalog_entries,
+            remaining_entries = 0,
+            skipped_entries,
+            elapsed_secs = started.elapsed().as_secs(),
+            "local recovery year finished"
+        );
     }
     for (source, (revision, complete)) in sources {
         if complete {
@@ -99,6 +121,51 @@ pub(crate) async fn recover(
         }
     }
     Ok((total, failures, cache_count, files))
+}
+
+fn log_progress(
+    dataset: IndexDataset,
+    year: u16,
+    artifact: &ionoray_store::CatalogArtifact,
+    counts: (usize, usize, usize),
+    records_imported: usize,
+    started: std::time::Instant,
+) {
+    tracing::info!(
+        dataset = dataset.scope_name(),
+        year,
+        month = artifact.month,
+        day = artifact.day,
+        completed_entries = counts.0,
+        total_catalog_entries = counts.1,
+        remaining_entries = counts.1 - counts.0,
+        skipped_entries = counts.2,
+        records_imported,
+        elapsed_secs = started.elapsed().as_secs(),
+        "local recovery progress"
+    );
+}
+
+fn outside_interval(
+    artifact: &ionoray_store::CatalogArtifact,
+    year: u16,
+    start: i64,
+    end: i64,
+) -> Result<bool, IndexError> {
+    let Some(month) = artifact.month else {
+        return Ok(false);
+    };
+    let month_start = crate::parse::epoch_ms(year, month, artifact.day.unwrap_or(1), 0)
+        .map_err(|_| IndexError::InvalidNumber("month"))?;
+    let month_end = if artifact.day.is_some() {
+        Ok(month_start + 86_400_000)
+    } else if month == 12 {
+        crate::parse::epoch_ms(year + 1, 1, 1, 0)
+    } else {
+        crate::parse::epoch_ms(year, month + 1, 1, 0)
+    }
+    .map_err(|_| IndexError::InvalidNumber("month"))?;
+    Ok(month_start >= end || month_end <= start)
 }
 
 fn recovery_years(

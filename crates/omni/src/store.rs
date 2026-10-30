@@ -52,6 +52,15 @@ impl OmniStore {
         product: Option<OmniProduct>,
         force: bool,
     ) -> Result<DownloadReport, OmniError> {
+        let started = std::time::Instant::now();
+        let months = range.months();
+        let total_months = months.len();
+        tracing::info!(
+            dataset = "omni",
+            total_months,
+            force,
+            "OMNI processing started"
+        );
         let _guard = self.scoped.try_acquire_sync_lock()?;
         let mut report = DownloadReport {
             range,
@@ -59,7 +68,17 @@ impl OmniStore {
             unavailable: Vec::new(),
             selections: Vec::new(),
         };
-        for month in range.months() {
+        for (index, month) in months.into_iter().enumerate() {
+            tracing::info!(
+                dataset = "omni",
+                year = month.year,
+                month = month.month,
+                phase = "check-validate-accept",
+                completed_months = index,
+                total_months,
+                remaining_months = total_months - index,
+                "OMNI month started"
+            );
             let previous = self.select_month(month, product).await?;
             let mut downloaded = None;
             let mut source_check = SourceCheck::Checked;
@@ -106,8 +125,29 @@ impl OmniStore {
                 product,
                 source_check,
             ));
-            report.files.push(selected.file_report(&cdf, browse_path)?);
+            let file = selected.file_report(&cdf, browse_path)?;
+            tracing::info!(
+                dataset = "omni",
+                year = month.year,
+                month = month.month,
+                records = file.records,
+                selected_file_bytes = file.artifact.byte_size,
+                completed_months = index + 1,
+                total_months,
+                remaining_months = total_months - index - 1,
+                elapsed_secs = started.elapsed().as_secs(),
+                "OMNI month finished"
+            );
+            report.files.push(file);
         }
+        tracing::info!(
+            dataset = "omni",
+            selected_files = report.files.len(),
+            source_records = report.files.iter().map(|f| f.records).sum::<usize>(),
+            unavailable_candidates = report.unavailable.len(),
+            elapsed_secs = started.elapsed().as_secs(),
+            "OMNI processing finished"
+        );
         Ok(report)
     }
 

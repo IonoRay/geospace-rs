@@ -1,5 +1,57 @@
 use super::*;
 
+const REAL_DST: &str = include_str!("../../tests/fixtures/dst/dst2405.for.request");
+
+#[test]
+fn official_dst_month_with_creation_footer_keeps_all_hourly_values() {
+    let ParsedFile::Dst(values) = parse_dst(REAL_DST, 2024, 5).unwrap() else {
+        panic!("expected Dst");
+    };
+    assert_eq!(values.len(), 744);
+    for (index, day, hour, expected) in
+        [(0, 1, 0, -19.0), (242, 11, 2, -406.0), (743, 31, 23, -19.0)]
+    {
+        assert_eq!(
+            values[index].epoch_ms,
+            epoch_ms(2024, 5, day, hour).unwrap()
+        );
+        assert_eq!(values[index].value, Some(expected));
+    }
+    assert!(parse_dst(REAL_DST, 2024, 4).is_err());
+}
+
+#[test]
+fn dst_footer_does_not_hide_unknown_text_or_misplaced_data() {
+    let (rows, footer) = REAL_DST.split_once("\n\n").unwrap();
+    assert!(parse_dst(rows, 2024, 5).is_ok()); // Legacy files without a footer.
+    for content in [
+        format!("{rows}\n[Unknown metadata]"),
+        format!("{rows}\n[Created at broken"),
+        format!("{rows}\n[Created at ]"),
+        format!("{rows}\n[Created at non-ascii 日期]"),
+        format!("{REAL_DST}unexpected HTML"),
+        format!("{REAL_DST}{footer}"),
+        format!("{footer}{rows}"),
+        footer.to_owned(),
+        format!("{REAL_DST}{}\n", rows.lines().next().unwrap()),
+    ] {
+        assert!(
+            parse_dst(&content, 2024, 5).is_err(),
+            "accepted invalid Dst structure"
+        );
+    }
+    let mut broken_row = rows.as_bytes().to_vec();
+    broken_row[20] = b'X';
+    assert!(
+        parse_dst(
+            &format!("{}\n{footer}", String::from_utf8(broken_row).unwrap()),
+            2024,
+            5
+        )
+        .is_err()
+    );
+}
+
 #[test]
 fn packaged_2021_gaps_produce_traceable_msis_drivers() {
     let Some(source) = crate::download::cache::for_dataset(IndexDataset::KpApF107, 2021) else {

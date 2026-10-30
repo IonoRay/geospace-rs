@@ -196,9 +196,32 @@ fn parse_gfz(content: &str, target_year: u16) -> Result<ParsedFile, String> {
 fn parse_dst(content: &str, year: u16, month: u8) -> Result<ParsedFile, String> {
     let mut values = Vec::new();
     let mut dates = HashSet::new();
+    let mut footer_seen = false;
     for (line_number, line) in content.lines().enumerate() {
         if line.trim().is_empty() {
             continue;
+        }
+        // Kyoto appends this creation-time metadata after the daily records.
+        if line.is_ascii()
+            && line
+                .strip_prefix("[Created at ")
+                .and_then(|s| s.strip_suffix(']'))
+                .is_some_and(|s| !s.trim().is_empty())
+        {
+            if footer_seen || dates.is_empty() {
+                return Err(format!(
+                    "line {} has a misplaced Dst creation footer",
+                    line_number + 1
+                ));
+            }
+            footer_seen = true;
+            continue;
+        }
+        if footer_seen {
+            return Err(format!(
+                "line {} has unexpected content after Dst creation footer",
+                line_number + 1
+            ));
         }
         let bytes = line.as_bytes();
         if !line.is_ascii() || bytes.len() < 120 || !line.starts_with("DST") {

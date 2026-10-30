@@ -263,9 +263,28 @@ async fn download_interval_sources(
 ) -> Result<PreparedIntervalDownloadReport, IndexError> {
     let mut files = Vec::with_capacity(sources.len());
     let mut failures = Vec::new();
-    for source in sources {
+    let total_sources = sources.len();
+    let started = std::time::Instant::now();
+    let mut last_progress = started;
+    for (index, source) in sources.into_iter().enumerate() {
+        let dataset = source.dataset.scope_name();
         let year = source.year;
         let month = source.month;
+        let day = source.day;
+        if index == 0 || last_progress.elapsed().as_secs() >= 5 {
+            tracing::info!(
+                dataset,
+                phase = "download-validate",
+                year,
+                month,
+                day,
+                completed_sources = index,
+                total_sources,
+                remaining_sources = total_sources - index,
+                "index source processing"
+            );
+            last_progress = std::time::Instant::now();
+        }
         match download_file_for_years(store, source, mode, target_years).await {
             Ok(prepared) => {
                 failures.extend(prepared.failures);
@@ -277,6 +296,23 @@ async fn download_interval_sources(
                 failure_kind(&error),
                 error.to_string(),
             )),
+        }
+        let completed_sources = index + 1;
+        if completed_sources == total_sources || last_progress.elapsed().as_secs() >= 5 {
+            tracing::info!(
+                dataset,
+                phase = "download-validate",
+                year,
+                month,
+                day,
+                completed_sources,
+                total_sources,
+                remaining_sources = total_sources - completed_sources,
+                failure_details = failures.len(),
+                elapsed_secs = started.elapsed().as_secs(),
+                "index source progress"
+            );
+            last_progress = std::time::Instant::now();
         }
     }
     Ok(PreparedIntervalDownloadReport { files, failures })
@@ -387,3 +423,7 @@ mod tests;
 #[cfg(test)]
 #[path = "ae_tests.rs"]
 mod ae_tests;
+
+#[cfg(test)]
+#[path = "dst_tests.rs"]
+mod dst_tests;

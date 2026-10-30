@@ -7,6 +7,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,
 };
+use tracing::instrument::WithSubscriber;
 
 struct Server {
     base: String,
@@ -94,10 +95,19 @@ async fn rolling_file_dedup_revision_failure_and_offline_read() {
     let store = ActivityStore::open(Some(home.path())).unwrap();
     let range = ActivityRange::parse("2024-05-10", "2024-05-12").unwrap();
     let sources = slots(ActivityDataset::Hp30, range, &server.base);
+    let log_path = home.path().join("progress.jsonl");
+    let log_file = std::fs::File::create(&log_path).unwrap();
+    let subscriber = tracing_subscriber::fmt()
+        .json()
+        .with_env_filter("info")
+        .with_writer(move || log_file.try_clone().unwrap())
+        .finish();
     let first = store
         .download_slots(ActivityDataset::Hp30, range, false, sources.clone())
+        .with_subscriber(subscriber)
         .await
         .unwrap();
+    assert_rolling_progress(&log_path, first.coverage.records);
     assert_eq!(first.files.len(), 1);
     assert_eq!(first.coverage.expected_records, 96);
     assert!(!first.coverage.missing_time_ranges_utc_ms.is_empty());
@@ -153,6 +163,28 @@ async fn rolling_file_dedup_revision_failure_and_offline_read() {
             .await
             .is_err()
     );
+}
+
+fn assert_rolling_progress(path: &std::path::Path, records: usize) {
+    let events: Vec<serde_json::Value> = std::fs::read_to_string(path)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    let progress = &events
+        .iter()
+        .find(|e| e["fields"]["message"] == "activity date progress")
+        .unwrap()["fields"];
+    assert_eq!(progress["completed_dates"], 2);
+    assert_eq!(progress["total_dates"], 2);
+    assert_eq!(progress["remaining_dates"], 0);
+    assert_eq!(progress["checked_sources"], 1);
+    let end = &events
+        .iter()
+        .find(|e| e["fields"]["message"] == "activity processing finished")
+        .unwrap()["fields"];
+    assert_eq!(end["selected_files"], 1);
+    assert_eq!(end["coverage_records"], records);
 }
 
 #[tokio::test]

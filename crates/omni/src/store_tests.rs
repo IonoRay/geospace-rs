@@ -7,6 +7,7 @@ use std::{
 };
 
 use super::*;
+use tracing::instrument::WithSubscriber;
 
 pub(super) struct Server {
     pub(super) base: String,
@@ -94,7 +95,37 @@ async fn absent_hro2_tries_hro_but_http_failures_stop() {
         let server = Server::start(responses);
         let home = tempfile::tempdir().unwrap();
         let store = OmniStore::open_at(home.path(), &server.base).await.unwrap();
-        let error = store.download(range(), None, false).await.unwrap_err();
+        let log_path = home.path().join("progress.jsonl");
+        let log_file = fs::File::create(&log_path).unwrap();
+        let subscriber = tracing_subscriber::fmt()
+            .json()
+            .with_env_filter("info")
+            .with_writer(move || log_file.try_clone().unwrap())
+            .finish();
+        let error = store
+            .download(range(), None, false)
+            .with_subscriber(subscriber)
+            .await
+            .unwrap_err();
+        let events: Vec<serde_json::Value> = fs::read_to_string(log_path)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let start = &events
+            .iter()
+            .find(|e| e["fields"]["message"] == "OMNI month started")
+            .unwrap()["fields"];
+        assert_eq!(start["completed_months"], 0);
+        assert_eq!(start["total_months"], 1);
+        assert_eq!(start["remaining_months"], 1);
+        assert_eq!(start["year"], 2024);
+        assert_eq!(start["month"], 5);
+        assert!(
+            events
+                .iter()
+                .all(|e| e["fields"]["message"] != "OMNI month finished")
+        );
         if count == 2 {
             assert!(matches!(error, OmniError::MissingMonth { .. }));
         }
@@ -181,7 +212,35 @@ async fn real_cdf_download_fallback_and_offline_read() {
         let server = Server::start(responses);
         let home = tempfile::tempdir().unwrap();
         let store = OmniStore::open_at(home.path(), &server.base).await.unwrap();
-        let downloaded = store.download(range(), None, false).await.unwrap();
+        let log_path = home.path().join("progress.jsonl");
+        let log_file = fs::File::create(&log_path).unwrap();
+        let subscriber = tracing_subscriber::fmt()
+            .json()
+            .with_env_filter("info")
+            .with_writer(move || log_file.try_clone().unwrap())
+            .finish();
+        let downloaded = store
+            .download(range(), None, false)
+            .with_subscriber(subscriber)
+            .await
+            .unwrap();
+        let events: Vec<serde_json::Value> = fs::read_to_string(log_path)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let end = &events
+            .iter()
+            .find(|e| e["fields"]["message"] == "OMNI month finished")
+            .unwrap()["fields"];
+        assert_eq!(end["completed_months"], 1);
+        assert_eq!(end["total_months"], 1);
+        assert_eq!(end["remaining_months"], 0);
+        assert_eq!(end["records"], 44_640); // Whole monthly source, not the 3-minute read range.
+        assert_eq!(
+            end["selected_file_bytes"],
+            fs::metadata(&path).unwrap().len()
+        );
         assert_eq!(downloaded.files[0].identity.product, product);
         assert_eq!(downloaded.files[0].records, 44_640);
         assert_eq!(

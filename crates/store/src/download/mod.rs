@@ -1,4 +1,5 @@
 mod baseline;
+mod entry;
 mod error;
 mod http;
 mod ingest;
@@ -11,6 +12,8 @@ mod service;
 mod contract_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod warning_tests;
 
 pub use error::DownloadError;
 pub use model::{

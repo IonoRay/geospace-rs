@@ -41,30 +41,7 @@ impl<'a> DownloadManager<'a> {
         })
     }
 
-    /// Checks a source with [`CheckMode::Metadata`] and commits changed bytes.
-    /// # Errors
-    /// Returns [`DownloadError`] for remote, local, or persistence failures.
-    pub async fn download(
-        &self,
-        request: &DownloadRequest,
-    ) -> Result<DownloadOutcome, DownloadError> {
-        self.check(request, CheckMode::Metadata).await
-    }
-
-    /// Checks a source using the selected consistency depth.
-    /// [`CheckMode::ForceContent`] hashes the complete local object and performs
-    /// an unconditional GET so the remote body is compared by SHA-256.
-    /// # Errors
-    /// Returns [`DownloadError`] for HTTP, filesystem, integrity, or persistence
-    /// failures.
-    #[tracing::instrument(
-        name = "download.check",
-        level = "debug",
-        skip_all,
-        fields(source_id = request.source_id(), url = %request.url(), mode = ?mode),
-        err(level = "warn")
-    )]
-    pub async fn check(
+    pub(crate) async fn check_inner(
         &self,
         request: &DownloadRequest,
         mode: CheckMode,
